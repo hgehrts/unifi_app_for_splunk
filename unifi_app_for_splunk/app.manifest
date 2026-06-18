@@ -1,0 +1,63 @@
+{
+    "dependencies": {},
+    "incompatibleApps": {},
+    "info": {
+        "author": [
+            {
+                "company": null,
+                "email": null,
+                "name": "UniFi App for Splunk"
+            }
+        ],
+        "classification": {
+            "categories": [
+                "Network",
+                "IT Operations"
+            ],
+            "developmentStatus": "Production/Stable",
+            "intendedAudience": "IT Operations"
+        },
+        "commonInformationModels": null,
+        "description": "Consolidated dashboards, syslog correlation and ID->name enrichment for UniFi gear. Companion to TA_unifi_ng.",
+        "id": {
+            "group": null,
+            "name": "unifi_app_for_splunk",
+            "version": "1.0.2"
+        },
+        "license": {
+            "name": "Apache-2.0",
+            "text": "LICENSE",
+            "uri": null
+        },
+        "port": null,
+        "privacyPolicy": {
+            "name": null,
+            "text": null,
+            "uri": null
+        },
+        "releaseDate": null,
+        "tags": [
+            "unifi",
+            "network",
+            "ubiquiti",
+            "syslog",
+            "dashboards"
+        ],
+        "title": "UniFi App for Splunk"
+    },
+    "inputGroups": {},
+    "platformRequirements": {
+        "splunk": {
+            "Enterprise": ">=9.0"
+        }
+    },
+    "schemaVersion": "2.0.0",
+    "supportedDeployments": [
+        "_standalone",
+        "_distributed"
+    ],
+    "targetWorkloads": [
+        "_search_heads"
+    ],
+    "tasks": []
+}

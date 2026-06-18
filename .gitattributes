@@ -1,0 +1,10 @@
+# Normalize line endings for text; mark binaries.
+* text=auto eol=lf
+
+*.tar.gz binary
+*.png binary
+*.json -text=auto
+
+# Bundled IEEE OUI vendor table is generated reference data (collapsed in diffs
+# and excluded from language stats).
+unifi_app_for_splunk/lookups/unifi_oui.csv linguist-generated

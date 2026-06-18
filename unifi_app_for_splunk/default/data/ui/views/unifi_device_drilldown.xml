@@ -1,0 +1,137 @@
+<dashboard version="2" theme="dark">
+  <label>UniFi - Device Drilldown</label>
+  <description>All telemetry, asset detail, clients and syslog for one device.</description>
+  <definition><![CDATA[
+{
+  "title": "UniFi - Device Drilldown",
+  "description": "Everything about one device: asset, telemetry, clients, syslog.",
+  "inputs": {
+    "input_device": {
+      "type": "input.dropdown",
+      "title": "Device",
+      "dataSources": { "primary": "ds_devlist" },
+      "context": {
+        "label": ">primary | seriesByName(\"device_name\") | renameSeries(\"label\")",
+        "value": ">primary | seriesByName(\"device_name\") | renameSeries(\"value\")"
+      },
+      "options": {
+        "token": "device",
+        "items": ">frame(label, value) | objects()"
+      }
+    },
+    "input_time": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": { "token": "tr", "defaultValue": "-7d@h,now" }
+    }
+  },
+  "dataSources": {
+    "ds_devlist": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup unifi_device_lookup | sort device_name | table device_name",
+        "queryParameters": {}
+      },
+      "name": "Device list"
+    },
+    "ds_asset": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup unifi_device_lookup | search device_name=\"$device$\" | table device_name device_model device_ip device_mac device_state device_id",
+        "queryParameters": {}
+      },
+      "name": "Asset detail"
+    },
+    "ds_stats": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_device_stats` | eval device_mac_nocolon=replace(lower(unifi_device_mac),\":\",\"\") | lookup unifi_device_lookup device_mac_nocolon OUTPUT device_name | search device_name=\"$device$\" | timechart span=5m latest(cpuUtilizationPct) as CPU latest(memoryUtilizationPct) as Memory",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Device CPU/Mem"
+    },
+    "ds_clients_on": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup unifi_client_lookup | search uplink_device_name=\"$device$\" | table client_name client_ip client_mac client_type",
+        "queryParameters": {}
+      },
+      "name": "Clients on device"
+    },
+    "ds_syslog": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` device_name=\"$device$\" | eval client=coalesce(client_name, client_mac) | table _time proc wifi_event kick_reason rssi client _raw | sort - _time",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Device syslog"
+    },
+    "ds_problem_tl": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` device_name=\"$device$\" | eval cat=case(isnotnull(kick_reason),\"kick\", match(_raw,\"(?i)disassoc|deauth|leave\"),\"disconnect\", match(_raw,\"(?i)assoc|join\"),\"connect\", true(),\"other\") | timechart span=10m count by cat",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Event categories over time"
+    }
+  },
+  "visualizations": {
+    "viz_asset": {
+      "type": "viz.table",
+      "options": {},
+      "dataSources": { "primary": "ds_asset" },
+      "title": "Asset"
+    },
+    "viz_stats": {
+      "type": "viz.line",
+      "options": { "yAxisTitleText": "%" , "yAxisMax": 100 },
+      "dataSources": { "primary": "ds_stats" },
+      "title": "CPU / Memory %"
+    },
+    "viz_problem_tl": {
+      "type": "viz.column",
+      "options": { "stackMode": "stacked" },
+      "dataSources": { "primary": "ds_problem_tl" },
+      "title": "Connect / disconnect / kick over time"
+    },
+    "viz_clients_on": {
+      "type": "viz.table",
+      "options": {
+        "drilldown": "row"
+      },
+      "dataSources": { "primary": "ds_clients_on" },
+      "title": "Clients on this device (click to drill into client)",
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToDashboard",
+          "options": {
+            "app": "unifi_app_for_splunk",
+            "dashboard": "unifi_client_drilldown",
+            "tokens": [
+              { "token": "client", "value": "row.client_mac.value" }
+            ]
+          }
+        }
+      ]
+    },
+    "viz_syslog": {
+      "type": "viz.table",
+      "options": { "count": 50 },
+      "dataSources": { "primary": "ds_syslog" },
+      "title": "Syslog for this device"
+    }
+  },
+  "layout": {
+    "type": "grid",
+    "options": { "width": 1440, "height": 1120 },
+    "structure": [
+      { "item": "viz_asset", "type": "block", "position": { "x": 0, "y": 0, "w": 720, "h": 180 } },
+      { "item": "viz_stats", "type": "block", "position": { "x": 720, "y": 0, "w": 720, "h": 180 } },
+      { "item": "viz_problem_tl", "type": "block", "position": { "x": 0, "y": 180, "w": 960, "h": 280 } },
+      { "item": "viz_clients_on", "type": "block", "position": { "x": 960, "y": 180, "w": 480, "h": 280 } },
+      { "item": "viz_syslog", "type": "block", "position": { "x": 0, "y": 460, "w": 1440, "h": 640 } }
+    ]
+  }
+}
+  ]]></definition>
+</dashboard>

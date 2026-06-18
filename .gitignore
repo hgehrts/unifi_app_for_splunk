@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Splunk runtime / local config (never commit secrets or per-instance config)
+local/
+local.meta
+passwords.conf
+*.unifi_api_key
+.unifi_api_key
+
+# OS / editor cruft
+.DS_Store
+._*
+*.swp
+.idea/
+.vscode/
+
+# Ad-hoc build tarballs (the released dist/ tarball IS committed on purpose).
+# This ignores stray tarballs built outside dist/.
+/*.tar.gz

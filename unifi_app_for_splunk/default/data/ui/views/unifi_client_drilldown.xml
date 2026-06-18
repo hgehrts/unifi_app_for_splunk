@@ -1,0 +1,123 @@
+<dashboard version="2" theme="dark">
+  <label>UniFi - Client Drilldown</label>
+  <description>One client's identity, connection history, roaming and syslog across all APs.</description>
+  <definition><![CDATA[
+{
+  "title": "UniFi - Client Drilldown",
+  "description": "Everything about one client across the whole fleet.",
+  "inputs": {
+    "input_client": {
+      "type": "input.dropdown",
+      "title": "Client",
+      "dataSources": { "primary": "ds_clientlist" },
+      "context": {
+        "label": ">primary | seriesByName(\"label\") | renameSeries(\"label\")",
+        "value": ">primary | seriesByName(\"client_mac\") | renameSeries(\"value\")"
+      },
+      "options": {
+        "token": "client",
+        "items": ">frame(label, value) | objects()"
+      }
+    },
+    "input_time": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": { "token": "tr", "defaultValue": "-7d@h,now" }
+    }
+  },
+  "dataSources": {
+    "ds_clientlist": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup unifi_client_lookup | eval label=client_name.\" (\".client_mac.\")\" | sort client_name | table label client_mac",
+        "queryParameters": {}
+      },
+      "name": "Client list"
+    },
+    "ds_identity": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup unifi_client_lookup | search client_mac=\"$client$\" | eval oui=substr(replace(lower(client_mac),\":\",\"\"),1,6) | lookup unifi_oui_lookup oui OUTPUT vendor as client_vendor | table client_name client_mac client_ip client_type client_vendor uplink_device_name",
+        "queryParameters": {}
+      },
+      "name": "Client identity"
+    },
+    "ds_roam": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog_index` sourcetype=ubnt:wireless client_mac=\"$client$\" | where isnotnull(device_name) | timechart span=10m dc(device_name) as APs_in_window | eval APs_in_window=coalesce(APs_in_window,0)",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Roaming spread"
+    },
+    "ds_ap_dist": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog_index` sourcetype=ubnt:wireless client_mac=\"$client$\" | stats count by device_name | sort - count",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Events per AP"
+    },
+    "ds_rssi": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` client_mac=\"$client$\" rssi=* | timechart span=10m avg(rssi) as avg_rssi min(rssi) as min_rssi",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "RSSI over time"
+    },
+    "ds_events": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` client_mac=\"$client$\" | table _time device_name proc wifi_event kick_reason rssi _raw | sort - _time",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Client syslog"
+    }
+  },
+  "visualizations": {
+    "viz_identity": {
+      "type": "viz.table",
+      "options": {},
+      "dataSources": { "primary": "ds_identity" },
+      "title": "Identity"
+    },
+    "viz_ap_dist": {
+      "type": "viz.bar",
+      "options": {},
+      "dataSources": { "primary": "ds_ap_dist" },
+      "title": "Events per AP (which APs this client touches)"
+    },
+    "viz_roam": {
+      "type": "viz.column",
+      "options": { "yAxisTitleText": "distinct APs / 10m" },
+      "dataSources": { "primary": "ds_roam" },
+      "title": "Roaming spread (high = ping-ponging between APs)"
+    },
+    "viz_rssi": {
+      "type": "viz.line",
+      "options": { "yAxisTitleText": "RSSI" },
+      "dataSources": { "primary": "ds_rssi" },
+      "title": "Signal (RSSI) over time"
+    },
+    "viz_events": {
+      "type": "viz.table",
+      "options": { "count": 50 },
+      "dataSources": { "primary": "ds_events" },
+      "title": "Client syslog (all APs)"
+    }
+  },
+  "layout": {
+    "type": "grid",
+    "options": { "width": 1440, "height": 1120 },
+    "structure": [
+      { "item": "viz_identity", "type": "block", "position": { "x": 0, "y": 0, "w": 720, "h": 160 } },
+      { "item": "viz_ap_dist", "type": "block", "position": { "x": 720, "y": 0, "w": 720, "h": 160 } },
+      { "item": "viz_roam", "type": "block", "position": { "x": 0, "y": 160, "w": 720, "h": 280 } },
+      { "item": "viz_rssi", "type": "block", "position": { "x": 720, "y": 160, "w": 720, "h": 280 } },
+      { "item": "viz_events", "type": "block", "position": { "x": 0, "y": 440, "w": 1440, "h": 660 } }
+    ]
+  }
+}
+  ]]></definition>
+</dashboard>

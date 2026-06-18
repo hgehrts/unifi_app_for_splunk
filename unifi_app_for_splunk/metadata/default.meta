@@ -1,0 +1,24 @@
+# Share everything globally so the syslog enrichment (props/transforms/lookups)
+# and macros apply regardless of the app context the search runs in.
+
+[]
+access = read : [ * ], write : [ admin, power ]
+export = system
+
+[transforms]
+export = system
+
+[props]
+export = system
+
+[lookups]
+export = system
+
+[macros]
+export = system
+
+[collections]
+export = system
+
+[savedsearches]
+export = system

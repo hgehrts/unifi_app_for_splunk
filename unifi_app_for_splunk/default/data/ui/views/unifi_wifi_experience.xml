@@ -1,0 +1,126 @@
+<dashboard version="2" theme="dark">
+  <label>UniFi - WiFi Experience &amp; Roaming</label>
+  <description>Fleet-wide wireless RCA: low-RSSI kicks, association failures, roaming churn, sticky clients.</description>
+  <definition><![CDATA[
+{
+  "title": "UniFi - WiFi Experience & Roaming",
+  "description": "Where WiFi hurts: kicks, failures, roaming churn, sticky clients.",
+  "inputs": {
+    "input_time": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": { "token": "tr", "defaultValue": "-24h@h,now" }
+    }
+  },
+  "dataSources": {
+    "ds_kick_ap": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` kick_reason=* | stats count as kicks by device_name | sort - kicks",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Kicks by AP"
+    },
+    "ds_lowrssi_clients": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` kick_reason=\"Low RSSI*\" | rex field=kick_reason \"rssi:(?<kr>\\d+)\" | stats count as kicks, avg(kr) as avg_rssi by client_name client_mac client_vendor | eval avg_rssi=round(avg_rssi,0) | sort - kicks | head 25",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Low-RSSI kicked clients"
+    },
+    "ds_failures": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog_index` sourcetype=ubnt* proc=stahtd \"failure\" | timechart span=15m count by stahtd_event_type",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Association failures over time"
+    },
+    "ds_roam_churn": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog_index` sourcetype=ubnt:wireless (\"associated\" OR \"EVENT_STA_JOIN\") | where isnotnull(client_mac) | stats dc(device_name) as aps, count as joins by client_name client_mac | where aps>1 | eval churn=joins | sort - churn | head 25",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Roaming churn (multi-AP clients)"
+    },
+    "ds_band": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_device_stats` | eval device_mac_nocolon=replace(lower(unifi_device_mac),\":\",\"\") | lookup unifi_device_lookup device_mac_nocolon OUTPUT device_name | stats avg(\"interfaces.radios{}.txRetriesPct\") as txRetriesPct by device_name | where txRetriesPct>0 | eval txRetriesPct=round(txRetriesPct,1) | sort - txRetriesPct | head 15",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "TX retries by AP"
+    }
+  },
+  "visualizations": {
+    "viz_kick_ap": {
+      "type": "viz.bar",
+      "options": {},
+      "dataSources": { "primary": "ds_kick_ap" },
+      "title": "Client kicks by AP (high = aggressive min-RSSI or coverage hole)"
+    },
+    "viz_failures": {
+      "type": "viz.area",
+      "options": { "stackMode": "stacked" },
+      "dataSources": { "primary": "ds_failures" },
+      "title": "Association failures over time (stahtd)"
+    },
+    "viz_lowrssi_clients": {
+      "type": "viz.table",
+      "options": { "count": 25, "drilldown": "row" },
+      "dataSources": { "primary": "ds_lowrssi_clients" },
+      "title": "Most-kicked clients at low RSSI (click to drill down)",
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToDashboard",
+          "options": {
+            "app": "unifi_app_for_splunk",
+            "dashboard": "unifi_client_drilldown",
+            "tokens": [
+              { "token": "client", "value": "row.client_mac.value" }
+            ]
+          }
+        }
+      ]
+    },
+    "viz_roam_churn": {
+      "type": "viz.table",
+      "options": { "count": 25, "drilldown": "row" },
+      "dataSources": { "primary": "ds_roam_churn" },
+      "title": "Roaming churn — clients ping-ponging between APs (click to drill down)",
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToDashboard",
+          "options": {
+            "app": "unifi_app_for_splunk",
+            "dashboard": "unifi_client_drilldown",
+            "tokens": [
+              { "token": "client", "value": "row.client_mac.value" }
+            ]
+          }
+        }
+      ]
+    },
+    "viz_band": {
+      "type": "viz.bar",
+      "options": {},
+      "dataSources": { "primary": "ds_band" },
+      "title": "Avg TX retry % by AP (airtime/interference indicator)"
+    }
+  },
+  "layout": {
+    "type": "grid",
+    "options": { "width": 1440, "height": 1080 },
+    "structure": [
+      { "item": "viz_kick_ap", "type": "block", "position": { "x": 0, "y": 0, "w": 720, "h": 300 } },
+      { "item": "viz_failures", "type": "block", "position": { "x": 720, "y": 0, "w": 720, "h": 300 } },
+      { "item": "viz_lowrssi_clients", "type": "block", "position": { "x": 0, "y": 300, "w": 720, "h": 460 } },
+      { "item": "viz_roam_churn", "type": "block", "position": { "x": 720, "y": 300, "w": 720, "h": 460 } },
+      { "item": "viz_band", "type": "block", "position": { "x": 0, "y": 760, "w": 1440, "h": 300 } }
+    ]
+  }
+}
+  ]]></definition>
+</dashboard>

@@ -1,0 +1,180 @@
+<dashboard version="2" theme="dark">
+  <label>UniFi - Overview</label>
+  <description>Fleet health, problem hotspots and RCA entry point. Click a device or client to drill down.</description>
+  <definition><![CDATA[
+{
+  "title": "UniFi - Overview",
+  "description": "Fleet health, problem hotspots and RCA entry point.",
+  "inputs": {
+    "input_time": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": { "token": "tr", "defaultValue": "-24h@h,now" }
+    }
+  },
+  "dataSources": {
+    "ds_online": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup unifi_device_lookup | stats count(eval(device_state==\"ONLINE\")) as online",
+        "queryParameters": {}
+      },
+      "name": "Devices online"
+    },
+    "ds_offline": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup unifi_device_lookup | stats count(eval(device_state!=\"ONLINE\")) as offline",
+        "queryParameters": {}
+      },
+      "name": "Devices offline"
+    },
+    "ds_clients_now": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog_index` sourcetype=ubnt:wireless client_mac=* | stats dc(client_mac) as clients",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Clients seen now"
+    },
+    "ds_clients_trend": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog_index` sourcetype=ubnt:wireless client_mac=* | timechart span=1h dc(client_mac) as Clients | eval wday=strftime(_time,\"%w\"), hour=strftime(_time,\"%H\") | join type=left wday hour [ search `unifi_syslog_index` sourcetype=ubnt:wireless client_mac=* earliest=-28d latest=now | bin _time span=1h | stats dc(client_mac) as c by _time | eval wday=strftime(_time,\"%w\"), hour=strftime(_time,\"%H\") | stats avg(c) as base by wday hour ] | eval \"Normal low\"=round(base*0.9,0), \"Normal high\"=round(base*1.1,0) | fields _time Clients \"Normal low\" \"Normal high\"",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Clients vs normal"
+    },
+    "ds_disc": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` (\"EVENT_STA_LEAVE\" OR \"disassociated\" OR \"deauthenticated\") | timechart span=1h count as Disconnects | eval wday=strftime(_time,\"%w\"), hour=strftime(_time,\"%H\") | join type=left wday hour [ search `unifi_syslog` (\"EVENT_STA_LEAVE\" OR \"disassociated\" OR \"deauthenticated\") earliest=-28d latest=now | bin _time span=1h | stats count as c by _time | eval wday=strftime(_time,\"%w\"), hour=strftime(_time,\"%H\") | stats avg(c) as base by wday hour ] | eval \"Normal low\"=round(base*0.9,0), \"Normal high\"=round(base*1.1,0) | fields _time Disconnects \"Normal low\" \"Normal high\"",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Disconnects vs normal"
+    },
+    "ds_kicks": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` kick_reason=* | rex field=kick_reason \"^(?<reason>[^ ]+(?: [A-Z]+)?)\" | stats count by reason | sort - count | head 10",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Kick reasons"
+    },
+    "ds_dev_problems": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` | eval problem=case(match(_raw,\"(?i)disassoc|deauth|EVENT_STA_LEAVE\"),\"disconnect\", isnotnull(kick_reason),\"kick\", match(proc,\"kernel\") AND match(_raw,\"(?i)error|fail|down\"),\"kernel_err\", true(),null()) | where isnotnull(problem) | stats count as problems by device_name | sort - problems | head 20",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Problems by device"
+    },
+    "ds_client_problems": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` (\"EVENT_STA_LEAVE\" OR \"deauthenticated\" OR \"disassociated\" OR kick_reason=*) client_mac=* | stats count as events, dc(device_name) as aps by client_name client_mac client_vendor | sort - events | head 20",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Noisiest clients"
+    }
+  },
+  "visualizations": {
+    "viz_online": {
+      "type": "viz.singlevalue",
+      "options": { "majorColor": "#118832", "unit": "online", "unitPosition": "after" },
+      "dataSources": { "primary": "ds_online" },
+      "title": "Devices online"
+    },
+    "viz_offline": {
+      "type": "viz.singlevalue",
+      "options": {
+        "majorColor": "#d41f1f", "unit": "offline", "unitPosition": "after",
+        "majorColorMatch": { "rules": [ { "value": "0", "to": "0", "from": "0" } ] }
+      },
+      "dataSources": { "primary": "ds_offline" },
+      "title": "Devices offline"
+    },
+    "viz_clients_now": {
+      "type": "viz.singlevalue",
+      "options": { "majorColor": "#1182f3" },
+      "dataSources": { "primary": "ds_clients_now" },
+      "title": "Wireless clients seen (selected range)"
+    },
+    "viz_clients_trend": {
+      "type": "viz.line",
+      "options": {
+        "yAxisTitleText": "distinct clients / hour",
+        "fieldColors": { "Clients": "#1182f3", "Normal low": "#5c6773", "Normal high": "#5c6773" }
+      },
+      "dataSources": { "primary": "ds_clients_trend" },
+      "title": "Clients seen vs normal band (same weekday/hour, +/-10%)"
+    },
+    "viz_disc": {
+      "type": "viz.line",
+      "options": {
+        "yAxisTitleText": "disconnects / hour",
+        "fieldColors": { "Disconnects": "#9b59f3", "Normal low": "#5c6773", "Normal high": "#5c6773" }
+      },
+      "dataSources": { "primary": "ds_disc" },
+      "title": "WiFi disconnects vs normal band (same weekday/hour, +/-10%)"
+    },
+    "viz_kicks": {
+      "type": "viz.bar",
+      "options": {},
+      "dataSources": { "primary": "ds_kicks" },
+      "title": "Top kick reasons (Low RSSI = sticky/distant clients)"
+    },
+    "viz_dev_problems": {
+      "type": "viz.table",
+      "options": { "drilldown": "row", "count": 20 },
+      "dataSources": { "primary": "ds_dev_problems" },
+      "title": "Problem events by device (click a device to drill down)",
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToDashboard",
+          "options": {
+            "app": "unifi_app_for_splunk",
+            "dashboard": "unifi_device_drilldown",
+            "tokens": [
+              { "token": "device", "value": "row.device_name.value" }
+            ]
+          }
+        }
+      ]
+    },
+    "viz_client_problems": {
+      "type": "viz.table",
+      "options": { "drilldown": "row", "count": 20 },
+      "dataSources": { "primary": "ds_client_problems" },
+      "title": "Noisiest clients (click a client to drill down)",
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToDashboard",
+          "options": {
+            "app": "unifi_app_for_splunk",
+            "dashboard": "unifi_client_drilldown",
+            "tokens": [
+              { "token": "client", "value": "row.client_mac.value" }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "layout": {
+    "type": "grid",
+    "options": { "width": 1440, "height": 1180 },
+    "structure": [
+      { "item": "viz_online", "type": "block", "position": { "x": 0, "y": 0, "w": 480, "h": 140 } },
+      { "item": "viz_offline", "type": "block", "position": { "x": 480, "y": 0, "w": 480, "h": 140 } },
+      { "item": "viz_clients_now", "type": "block", "position": { "x": 960, "y": 0, "w": 480, "h": 140 } },
+      { "item": "viz_clients_trend", "type": "block", "position": { "x": 0, "y": 140, "w": 720, "h": 300 } },
+      { "item": "viz_disc", "type": "block", "position": { "x": 720, "y": 140, "w": 720, "h": 300 } },
+      { "item": "viz_kicks", "type": "block", "position": { "x": 0, "y": 440, "w": 1440, "h": 220 } },
+      { "item": "viz_dev_problems", "type": "block", "position": { "x": 0, "y": 660, "w": 720, "h": 500 } },
+      { "item": "viz_client_problems", "type": "block", "position": { "x": 720, "y": 660, "w": 720, "h": 500 } }
+    ]
+  }
+}
+  ]]></definition>
+</dashboard>
