@@ -61,6 +61,7 @@ Full setup, including getting UniFi syslog into Splunk via SC4S, is in the in-ap
 
 | Dashboard | Purpose |
 |-----------|---------|
+| **UniFi – Topology** | Live map (clients → APs → switches → Dream Machine) with directional links, live uplink-throughput labels, node colour by errors in the last 5 min, a show-clients toggle, a time picker (time-travel) and 30s refresh. **Requires the Network Diagram Viz app.** |
 | **UniFi – Overview** | Online/offline, clients-seen and WiFi-disconnects vs a same-weekday/hour ±10% "normal band", top kick reasons, problem devices, noisiest clients. Click to drill down. |
 | **UniFi – Device Drilldown** | One **or more** devices (multi-select): asset, software/firmware version, CPU/memory, uplink throughput, fan & temperature, active ports/PoE, clients, and rich syslog with severity/event filters + clustering by client/device/message. |
 | **UniFi – Client Drilldown** | One **or more** clients: identity + vendor, APs touched, roaming spread, RSSI, full syslog. |

@@ -22,6 +22,9 @@ shows `U7DG`, `Sigitas-iPhone` and `Apple, Inc.` instead of `942a6f4877f1`.
 - The **`TA_unifi_ng`** add-on installed and collecting into an index.
 - UniFi device syslog reaching Splunk via SC4S (sourcetypes `ubnt`,
   `ubnt:wireless`, `ubnt:dns`).
+- **For the Topology dashboard only:** the **Network Diagram Viz** app
+  (Splunkbase, by Daniel Spavin) must be installed. Every other dashboard works
+  without it.
 
 ---
 
@@ -161,6 +164,7 @@ Applied automatically to `ubnt`, `ubnt:wireless`, `ubnt:dns`:
 
 | Dashboard | Purpose |
 |-----------|---------|
+| **UniFi - Topology** | Live map of clients → APs → switches → the Dream Machine. Directional links labelled with live uplink throughput; node colour = errors in the last 5 min. Show-clients toggle, time picker (time-travel), 30s refresh. **Requires the Network Diagram Viz app.** |
 | **UniFi - Overview** | Fleet health (online/offline), **clients-seen and WiFi-disconnects each plotted against a "normal" band** (mean of the same weekday+hour over the prior 28 days, ±10%), top kick reasons, problem devices and noisiest clients. Click a device or client to drill down. |
 | **UniFi - Device Drilldown** | One **or more** devices (multi-select, defaults to All): asset, **software/firmware version**, CPU/memory, **uplink throughput**, **fan & temperature** (from `ubnt-fanctrl` syslog), **active ports/PoE**, clients (clickable), events-over-time, and a rich syslog section with **severity / event-type filters** and **clustering by client, by device and by message pattern**. |
 | **UniFi - Client Drilldown** | One **or more** clients (multi-select): identity + vendor, which APs they touch, roaming spread, RSSI over time, full syslog. |
@@ -233,6 +237,15 @@ unifi_app_for_splunk/
 ---
 
 ## 9. Changelog
+
+**1.2.0**
+- New **Topology** dashboard: live network map (clients → APs → switches → the
+  Dream Machine) built from the TA's uplink data. Directional links labelled with
+  **live uplink throughput**; node colour = **errors in the last 5 minutes**
+  (green = healthy, red = errors). Includes a **Show clients** toggle, a **time
+  picker** (jump back to see attachment as of a past time) and **30s auto-refresh**.
+  Two panels: a tiered top-down hierarchy, and a draggable device-type view.
+  Requires the **Network Diagram Viz** app (Splunkbase, by Daniel Spavin).
 
 **1.1.1**
 - Fixed the drilldown inputs so they render as a proper **form input row** at the

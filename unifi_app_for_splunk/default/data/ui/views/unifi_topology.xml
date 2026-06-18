@@ -1,0 +1,137 @@
+<dashboard version="1.1" theme="dark">
+  <label>UniFi - Topology</label>
+  <description>Live network topology: clients to APs/switches to the Dream Machine. Node color = errors in the last 5 minutes (green = none, red = errors). Requires the "Network Diagram Viz" app.</description>
+  <search id="base_topo">
+    <query>
+      ``` Node-style rows (devices + clients) set each node's icon (type) and error
+          colour (= err+/meaningful events in the last 5 min). The trailing edge rows
+          (parent to child) drive the directed top-down hierarchy and carry the live
+          uplink throughput as the link label. ```
+      search `unifi_index` sourcetype=unifi:device:detail
+      | stats latest(name) as name latest(model) as model latest(state) as state by id
+      | eval type=case(match(model,"(?i)Dream Machine|UDM|UXG|gateway"),"globe",
+                       match(model,"(?i)USW|switch|PoE|US "),"sitemap",
+                       match(model,"(?i)U6|U7|AP|AC |Ultra|nanoHD|Lite|LR|Mesh"),"wifi",
+                       true(),"server")
+      | join type=left name
+          [ search `unifi_syslog` earliest=-5m latest=now
+                 (severity="err" OR severity="crit" OR severity="alert" OR severity="emerg"
+                  OR event_action="disconnect" OR event_action="kick" OR event_action="link_down"
+                  OR event_action="login_fail" OR match(_raw,"(?i)overheat"))
+            | eval name=device_name | stats count as e by name ]
+      | eval from=name, to="", nodetext=name, color=if(coalesce(e,0)>0,"red","green"),
+             value="Device: ".name."  Model: ".model."  State: ".state."  Errors(5m): ".coalesce(e,0)
+      | table from to nodetext type color value
+      | append
+          [ inputlookup unifi_client_lookup
+            | where isnotnull(uplink_device_name) AND uplink_device_name!="" AND ($show_clients$)
+            | eval name=coalesce(client_name, client_mac)
+            | join type=left name
+                [ search `unifi_syslog` earliest=-5m latest=now
+                      (severity="err" OR event_action="disconnect" OR event_action="kick" OR event_action="login_fail")
+                  | eval name=coalesce(client_name, client_mac) | stats count as e by name ]
+            | eval from=name, to="", nodetext=name,
+                   type=if(client_type=="WIRELESS","laptop","desktop"),
+                   color=if(coalesce(e,0)>0,"red","green"),
+                   value="Client: ".name."  IP: ".client_ip."  MAC: ".client_mac
+            | table from to nodetext type color value ]
+      | append
+          [ ``` device -> uplink edges (parent to child) with live throughput label ```
+            search `unifi_index` sourcetype=unifi:device:detail
+            | stats latest(name) as name latest("uplink.deviceId") as up latest(unifi_device_mac) as mac by id
+            | eval k=replace(lower(mac),":","")
+            | lookup unifi_device_lookup device_id AS up OUTPUT device_name AS parent
+            | join type=left k
+                [ search `unifi_index` sourcetype=unifi:device:stats
+                  | eval k=replace(lower(unifi_device_mac),":","")
+                  | stats latest(uplink.rxRateBps) as rx latest(uplink.txRateBps) as tx by k ]
+            | eval mbps=round((coalesce(rx,0)+coalesce(tx,0))*8/1e6,1)
+            | where isnotnull(parent) AND parent!=""
+            | eval from=parent, to=name, linktext=if(mbps>0, mbps." Mbps", "")
+            | table from to linktext ]
+      | append
+          [ ``` client -> uplink device edges ```
+            inputlookup unifi_client_lookup
+            | where isnotnull(uplink_device_name) AND uplink_device_name!="" AND ($show_clients$)
+            | eval from=uplink_device_name, to=coalesce(client_name, client_mac),
+                   linktext=if(client_type=="WIRELESS","Wi-Fi","wired")
+            | table from to linktext ]
+    </query>
+    <earliest>$tr.earliest$</earliest>
+    <latest>$tr.latest$</latest>
+    <refresh>30s</refresh>
+    <refreshType>delay</refreshType>
+  </search>
+
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="tr">
+      <label>Time (topology as of)</label>
+      <default>
+        <earliest>-15m</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="show_clients">
+      <label>Show clients</label>
+      <choice value="1=1">Yes — clients + APs + switches</choice>
+      <choice value="1=2">No — infrastructure only</choice>
+      <default>1=1</default>
+      <initialValue>1=1</initialValue>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <title>Tiered hierarchy — Dream Machine → switches → APs → clients. Node colour = errors in the last 5 min (green = healthy, red = errors). Link label = live uplink throughput. Auto-refresh 30s.</title>
+      <viz type="network-diagram-viz.network-diagram-viz">
+        <search base="base_topo"></search>
+        <option name="drilldown">none</option>
+        <option name="network-diagram-viz.network-diagram-viz.arrowLocation">end</option>
+        <option name="network-diagram-viz.network-diagram-viz.canZoom">true</option>
+        <option name="network-diagram-viz.network-diagram-viz.clusterBy">none</option>
+        <option name="network-diagram-viz.network-diagram-viz.defaultLinkLength">120</option>
+        <option name="network-diagram-viz.network-diagram-viz.defaultNodeType">server</option>
+        <option name="network-diagram-viz.network-diagram-viz.draggableNodes">true</option>
+        <option name="network-diagram-viz.network-diagram-viz.enablePhysics">false</option>
+        <option name="network-diagram-viz.network-diagram-viz.hierarchy">true</option>
+        <option name="network-diagram-viz.network-diagram-viz.hierarchyDirection">Top-Down</option>
+        <option name="network-diagram-viz.network-diagram-viz.hierarchySortMethod">directed</option>
+        <option name="network-diagram-viz.network-diagram-viz.shakeTowards">roots</option>
+        <option name="network-diagram-viz.network-diagram-viz.levelSeparation">160</option>
+        <option name="network-diagram-viz.network-diagram-viz.linkTextLocation">bottom</option>
+        <option name="network-diagram-viz.network-diagram-viz.linkTextSize">small</option>
+        <option name="network-diagram-viz.network-diagram-viz.nodeSpacing">130</option>
+        <option name="network-diagram-viz.network-diagram-viz.nodeTextSize">medium</option>
+        <option name="network-diagram-viz.network-diagram-viz.smoothEdgeType">dynamic</option>
+        <option name="network-diagram-viz.network-diagram-viz.smoothEdges">true</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="height">720</option>
+      </viz>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Device-type view — distinct icons (globe = gateway, switch = switch, Wi-Fi = AP, laptop/desktop = wireless/wired client). Same data, drag to explore. Node colour = errors in the last 5 min.</title>
+      <viz type="network-diagram-viz.network-diagram-viz">
+        <search base="base_topo"></search>
+        <option name="drilldown">none</option>
+        <option name="network-diagram-viz.network-diagram-viz.arrowLocation">end</option>
+        <option name="network-diagram-viz.network-diagram-viz.canZoom">true</option>
+        <option name="network-diagram-viz.network-diagram-viz.clusterBy">none</option>
+        <option name="network-diagram-viz.network-diagram-viz.defaultLinkLength">140</option>
+        <option name="network-diagram-viz.network-diagram-viz.defaultNodeType">server</option>
+        <option name="network-diagram-viz.network-diagram-viz.draggableNodes">true</option>
+        <option name="network-diagram-viz.network-diagram-viz.enablePhysics">true</option>
+        <option name="network-diagram-viz.network-diagram-viz.hierarchy">false</option>
+        <option name="network-diagram-viz.network-diagram-viz.linkTextLocation">bottom</option>
+        <option name="network-diagram-viz.network-diagram-viz.linkTextSize">small</option>
+        <option name="network-diagram-viz.network-diagram-viz.nodeTextSize">medium</option>
+        <option name="network-diagram-viz.network-diagram-viz.shakeTowards">leaves</option>
+        <option name="network-diagram-viz.network-diagram-viz.smoothEdgeType">dynamic</option>
+        <option name="network-diagram-viz.network-diagram-viz.smoothEdges">true</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="height">720</option>
+      </viz>
+    </panel>
+  </row>
+</dashboard>

@@ -1,5 +1,6 @@
 <nav search_view="search" color="#0a3d62">
   <view name="unifi_overview" default="true" />
+  <view name="unifi_topology" />
   <view name="unifi_device_drilldown" />
   <view name="unifi_client_drilldown" />
   <view name="unifi_wifi_experience" />
