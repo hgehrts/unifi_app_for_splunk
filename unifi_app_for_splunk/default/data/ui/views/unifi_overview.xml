@@ -180,6 +180,7 @@
   "layout": {
     "type": "grid",
     "options": { "width": 1440, "height": 1180 },
+    "globalInputs": [ "input_time", "input_refresh" ],
     "structure": [
       { "item": "viz_online", "type": "block", "position": { "x": 0, "y": 0, "w": 480, "h": 140 } },
       { "item": "viz_offline", "type": "block", "position": { "x": 480, "y": 0, "w": 480, "h": 140 } },

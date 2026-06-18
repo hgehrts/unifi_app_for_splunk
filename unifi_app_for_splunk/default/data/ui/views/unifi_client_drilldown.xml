@@ -11,14 +11,16 @@
       "title": "Client(s)",
       "dataSources": { "primary": "ds_clientlist" },
       "context": {
-        "statics": [ { "label": "All", "value": "*" } ],
-        "label": ">primary | seriesByName(\"label\") | renameSeries(\"label\")",
-        "value": ">primary | seriesByName(\"client_mac\") | renameSeries(\"value\")"
+        "formattedConfig": { "number": { "prefix": "" } },
+        "formattedStatics": ">statics | formatByType(formattedConfig)",
+        "statics": [ [ "All" ], [ "*" ] ],
+        "label": ">primary | seriesByName(\"label\") | renameSeries(\"label\") | formatByType(formattedConfig)",
+        "value": ">primary | seriesByName(\"client_mac\") | renameSeries(\"value\") | formatByType(formattedConfig)"
       },
       "options": {
         "token": "client",
-        "defaultValue": [ "*" ],
-        "items": ">frame(label, value) | prepend(statics) | objects()"
+        "defaultValue": "*",
+        "items": ">frame(label, value) | prepend(formattedStatics) | objects()"
       }
     },
     "input_time": {
@@ -131,6 +133,7 @@
   "layout": {
     "type": "grid",
     "options": { "width": 1440, "height": 1120 },
+    "globalInputs": [ "input_client", "input_time", "input_refresh" ],
     "structure": [
       { "item": "viz_identity", "type": "block", "position": { "x": 0, "y": 0, "w": 720, "h": 160 } },
       { "item": "viz_ap_dist", "type": "block", "position": { "x": 720, "y": 0, "w": 720, "h": 160 } },

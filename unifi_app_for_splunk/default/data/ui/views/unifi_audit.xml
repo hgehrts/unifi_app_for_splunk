@@ -131,6 +131,7 @@
   "layout": {
     "type": "grid",
     "options": { "width": 1440, "height": 1500 },
+    "globalInputs": [ "input_time", "input_refresh" ],
     "structure": [
       { "item": "viz_login_kpi", "type": "block", "position": { "x": 0, "y": 0, "w": 360, "h": 140 } },
       { "item": "viz_login_fail_kpi", "type": "block", "position": { "x": 360, "y": 0, "w": 360, "h": 140 } },

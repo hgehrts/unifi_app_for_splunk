@@ -234,6 +234,15 @@ unifi_app_for_splunk/
 
 ## 9. Changelog
 
+**1.1.1**
+- Fixed the drilldown inputs so they render as a proper **form input row** at the
+  top of the Device and Client dashboards (registered in `layout.globalInputs`)
+  and the **"All"** choice works (correct `statics`/`formattedStatics` context).
+  Opening a drilldown directly now shows the multi-select pickers and defaults to
+  All; drilling in from Overview still pre-selects the clicked entity.
+- Added the input row registration to the Overview, WiFi Experience and Auditing
+  dashboards as well.
+
 **1.1.0**
 - Device & Client drilldowns now use **multi-select** inputs (lookup-driven,
   `IN (...)`, default All); drilldowns pre-select the clicked entity.

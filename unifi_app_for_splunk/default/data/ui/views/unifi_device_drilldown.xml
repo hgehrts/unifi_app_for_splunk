@@ -11,14 +11,16 @@
       "title": "Device(s)",
       "dataSources": { "primary": "ds_devlist" },
       "context": {
-        "statics": [ { "label": "All", "value": "*" } ],
-        "label": ">primary | seriesByName(\"device_name\") | renameSeries(\"label\")",
-        "value": ">primary | seriesByName(\"device_name\") | renameSeries(\"value\")"
+        "formattedConfig": { "number": { "prefix": "" } },
+        "formattedStatics": ">statics | formatByType(formattedConfig)",
+        "statics": [ [ "All" ], [ "*" ] ],
+        "label": ">primary | seriesByName(\"device_name\") | renameSeries(\"label\") | formatByType(formattedConfig)",
+        "value": ">primary | seriesByName(\"device_name\") | renameSeries(\"value\") | formatByType(formattedConfig)"
       },
       "options": {
         "token": "device",
-        "defaultValue": [ "*" ],
-        "items": ">frame(label, value) | prepend(statics) | objects()"
+        "defaultValue": "*",
+        "items": ">frame(label, value) | prepend(formattedStatics) | objects()"
       }
     },
     "input_sev": {
@@ -45,14 +47,16 @@
       "title": "Event type",
       "dataSources": { "primary": "ds_actions" },
       "context": {
-        "statics": [ { "label": "All", "value": "*" } ],
-        "label": ">primary | seriesByName(\"event_action\") | renameSeries(\"label\")",
-        "value": ">primary | seriesByName(\"event_action\") | renameSeries(\"value\")"
+        "formattedConfig": { "number": { "prefix": "" } },
+        "formattedStatics": ">statics | formatByType(formattedConfig)",
+        "statics": [ [ "All" ], [ "*" ] ],
+        "label": ">primary | seriesByName(\"event_action\") | renameSeries(\"label\") | formatByType(formattedConfig)",
+        "value": ">primary | seriesByName(\"event_action\") | renameSeries(\"value\") | formatByType(formattedConfig)"
       },
       "options": {
         "token": "action",
-        "defaultValue": [ "*" ],
-        "items": ">frame(label, value) | prepend(statics) | objects()"
+        "defaultValue": "*",
+        "items": ">frame(label, value) | prepend(formattedStatics) | objects()"
       }
     },
     "input_time": {
@@ -219,6 +223,7 @@
   "layout": {
     "type": "grid",
     "options": { "width": 1440, "height": 2000 },
+    "globalInputs": [ "input_device", "input_sev", "input_action", "input_time", "input_refresh" ],
     "structure": [
       { "item": "viz_asset", "type": "block", "position": { "x": 0, "y": 0, "w": 720, "h": 170 } },
       { "item": "viz_version", "type": "block", "position": { "x": 720, "y": 0, "w": 720, "h": 170 } },

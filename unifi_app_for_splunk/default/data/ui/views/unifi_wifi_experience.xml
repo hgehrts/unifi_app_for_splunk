@@ -129,6 +129,7 @@
   "layout": {
     "type": "grid",
     "options": { "width": 1440, "height": 1080 },
+    "globalInputs": [ "input_time", "input_refresh" ],
     "structure": [
       { "item": "viz_kick_ap", "type": "block", "position": { "x": 0, "y": 0, "w": 720, "h": 300 } },
       { "item": "viz_failures", "type": "block", "position": { "x": 720, "y": 0, "w": 720, "h": 300 } },
