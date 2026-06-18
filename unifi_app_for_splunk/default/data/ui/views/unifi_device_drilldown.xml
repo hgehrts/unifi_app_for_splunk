@@ -1,135 +1,237 @@
 <dashboard version="2" theme="dark">
   <label>UniFi - Device Drilldown</label>
-  <description>All telemetry, asset detail, clients and syslog for one device.</description>
+  <description>Telemetry, software/version, fan/temp, ports, clients and rich syslog for one or more devices.</description>
   <definition><![CDATA[
 {
   "title": "UniFi - Device Drilldown",
-  "description": "Everything about one device: asset, telemetry, clients, syslog.",
+  "description": "One or more devices: asset, software, hardware telemetry, clients and rich syslog.",
   "inputs": {
     "input_device": {
-      "type": "input.dropdown",
-      "title": "Device",
+      "type": "input.multiselect",
+      "title": "Device(s)",
       "dataSources": { "primary": "ds_devlist" },
       "context": {
+        "statics": [ { "label": "All", "value": "*" } ],
         "label": ">primary | seriesByName(\"device_name\") | renameSeries(\"label\")",
         "value": ">primary | seriesByName(\"device_name\") | renameSeries(\"value\")"
       },
       "options": {
         "token": "device",
-        "items": ">frame(label, value) | objects()"
+        "defaultValue": [ "*" ],
+        "items": ">frame(label, value) | prepend(statics) | objects()"
+      }
+    },
+    "input_sev": {
+      "type": "input.multiselect",
+      "title": "Syslog severity",
+      "options": {
+        "token": "sev",
+        "defaultValue": [ "*" ],
+        "items": [
+          { "label": "All", "value": "*" },
+          { "label": "emerg", "value": "emerg" },
+          { "label": "alert", "value": "alert" },
+          { "label": "crit", "value": "crit" },
+          { "label": "err", "value": "err" },
+          { "label": "warning", "value": "warning" },
+          { "label": "notice", "value": "notice" },
+          { "label": "info", "value": "info" },
+          { "label": "debug", "value": "debug" }
+        ]
+      }
+    },
+    "input_action": {
+      "type": "input.multiselect",
+      "title": "Event type",
+      "dataSources": { "primary": "ds_actions" },
+      "context": {
+        "statics": [ { "label": "All", "value": "*" } ],
+        "label": ">primary | seriesByName(\"event_action\") | renameSeries(\"label\")",
+        "value": ">primary | seriesByName(\"event_action\") | renameSeries(\"value\")"
+      },
+      "options": {
+        "token": "action",
+        "defaultValue": [ "*" ],
+        "items": ">frame(label, value) | prepend(statics) | objects()"
       }
     },
     "input_time": {
       "type": "input.timerange",
       "title": "Time range",
       "options": { "token": "tr", "defaultValue": "-7d@h,now" }
+    },
+    "input_refresh": {
+      "type": "input.dropdown",
+      "title": "Auto-refresh",
+      "options": {
+        "token": "rfsh",
+        "defaultValue": "0",
+        "items": [
+          { "label": "Off", "value": "0" },
+          { "label": "30s", "value": "30s" },
+          { "label": "1m", "value": "1m" },
+          { "label": "5m", "value": "5m" },
+          { "label": "15m", "value": "15m" }
+        ]
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": { "options": { "refreshType": "delay" } }
     }
   },
   "dataSources": {
     "ds_devlist": {
       "type": "ds.search",
-      "options": {
-        "query": "| inputlookup unifi_device_lookup | sort device_name | table device_name",
-        "queryParameters": {}
-      },
+      "options": { "query": "| inputlookup unifi_device_lookup | sort device_name | table device_name" },
       "name": "Device list"
+    },
+    "ds_actions": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` | stats count by event_action | sort - count | table event_action",
+        "queryParameters": { "earliest": "-7d@h", "latest": "now" }
+      },
+      "name": "Event actions"
     },
     "ds_asset": {
       "type": "ds.search",
       "options": {
-        "query": "| inputlookup unifi_device_lookup | search device_name=\"$device$\" | table device_name device_model device_ip device_mac device_state device_id",
-        "queryParameters": {}
+        "query": "| inputlookup unifi_device_lookup | search device_name IN ($device|s$) OR (\"$device$\"=\"*\") | table device_name device_model device_ip device_mac device_state device_id"
       },
-      "name": "Asset detail"
+      "name": "Asset"
+    },
+    "ds_version": {
+      "type": "ds.search",
+      "options": {
+        "query": "search index=unifi sourcetype=unifi:device:detail | search name IN ($device|s$) OR (\"$device$\"=\"*\") | stats latest(model) as Model latest(firmwareVersion) as Firmware latest(firmwareUpdatable) as \"Update available\" latest(adoptedAt) as Adopted latest(state) as State by name | rename name as Device | sort Device",
+        "queryParameters": { "earliest": "-1d", "latest": "now" }
+      },
+      "name": "Software / version"
     },
     "ds_stats": {
       "type": "ds.search",
       "options": {
-        "query": "search `unifi_device_stats` | eval device_mac_nocolon=replace(lower(unifi_device_mac),\":\",\"\") | lookup unifi_device_lookup device_mac_nocolon OUTPUT device_name | search device_name=\"$device$\" | timechart span=5m latest(cpuUtilizationPct) as CPU latest(memoryUtilizationPct) as Memory",
-        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+        "query": "search `unifi_device_stats` | eval device_mac_nocolon=replace(lower(unifi_device_mac),\":\",\"\") | lookup unifi_device_lookup device_mac_nocolon OUTPUT device_name | search device_name IN ($device|s$) OR (\"$device$\"=\"*\") | timechart span=5m avg(cpuUtilizationPct) as CPU avg(memoryUtilizationPct) as Memory by device_name",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
       },
-      "name": "Device CPU/Mem"
+      "name": "CPU/Mem"
+    },
+    "ds_uplink": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_device_stats` | eval device_mac_nocolon=replace(lower(unifi_device_mac),\":\",\"\") | lookup unifi_device_lookup device_mac_nocolon OUTPUT device_name | search device_name IN ($device|s$) OR (\"$device$\"=\"*\") | eval rxMbps=round('uplink.rxRateBps'*8/1e6,2), txMbps=round('uplink.txRateBps'*8/1e6,2) | timechart span=5m avg(rxMbps) as \"Uplink Rx Mbps\" avg(txMbps) as \"Uplink Tx Mbps\"",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Uplink throughput"
+    },
+    "ds_fan": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` proc=ubnt-fanctrl | search device_name IN ($device|s$) OR (\"$device$\"=\"*\") | timechart span=10m avg(device_temp_c) as \"Temp °C\" avg(fan_rpm) as \"Fan RPM\" avg(fan_speed_pct) as \"Fan %\"",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Fan & temperature"
+    },
+    "ds_ports": {
+      "type": "ds.search",
+      "options": {
+        "query": "search index=unifi sourcetype=unifi:device:detail | search name IN ($device|s$) OR (\"$device$\"=\"*\") | eval z=mvzip(mvzip(mvzip('interfaces.ports{}.idx','interfaces.ports{}.state'),'interfaces.ports{}.speedMbps'),'interfaces.ports{}.poe.state') | mvexpand z | eval p=split(z,\",\") | eval Port=mvindex(p,0), Link=mvindex(p,1), \"Speed Mbps\"=mvindex(p,2), PoE=mvindex(p,3) | dedup name Port | search Link=UP | table name Port Link \"Speed Mbps\" PoE | rename name as Device | sort Device Port",
+        "queryParameters": { "earliest": "-1d", "latest": "now" }
+      },
+      "name": "Active ports"
     },
     "ds_clients_on": {
       "type": "ds.search",
       "options": {
-        "query": "| inputlookup unifi_client_lookup | search uplink_device_name=\"$device$\" | table client_name client_ip client_mac client_type",
-        "queryParameters": {}
+        "query": "| inputlookup unifi_client_lookup | search uplink_device_name IN ($device|s$) OR (\"$device$\"=\"*\") | table client_name client_ip client_mac client_type uplink_device_name | sort uplink_device_name client_name"
       },
-      "name": "Clients on device"
+      "name": "Clients"
+    },
+    "ds_action_tl": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` (device_name IN ($device|s$) OR (\"$device$\"=\"*\")) | timechart span=10m count by event_action",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Events over time"
+    },
+    "ds_by_client": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` (device_name IN ($device|s$) OR (\"$device$\"=\"*\")) (severity IN ($sev|s$) OR (\"$sev$\"=\"*\")) (event_action IN ($action|s$) OR (\"$action$\"=\"*\")) client_mac=* | eval client=coalesce(client_name, client_mac) | stats count as events dc(event_action) as event_types values(event_action) as actions by client client_vendor | sort - events | head 25",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Cluster by client"
+    },
+    "ds_by_device": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` (device_name IN ($device|s$) OR (\"$device$\"=\"*\")) (severity IN ($sev|s$) OR (\"$sev$\"=\"*\")) (event_action IN ($action|s$) OR (\"$action$\"=\"*\")) | stats count as events, count(eval(severity==\"err\")) as errors, count(eval(severity==\"warning\")) as warnings by device_name | sort - events",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Cluster by device"
+    },
+    "ds_by_message": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` (device_name IN ($device|s$) OR (\"$device$\"=\"*\")) (severity IN ($sev|s$) OR (\"$sev$\"=\"*\")) (event_action IN ($action|s$) OR (\"$action$\"=\"*\")) | cluster field=_raw t=0.6 showcount=t | stats count first(_raw) as sample max(proc) as proc by cluster_count | eval Sample=substr(sample,1,120) | sort - cluster_count | head 20 | table cluster_count proc Sample | rename cluster_count as Count",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Cluster by message"
     },
     "ds_syslog": {
       "type": "ds.search",
       "options": {
-        "query": "search `unifi_syslog` device_name=\"$device$\" | eval client=coalesce(client_name, client_mac) | table _time proc wifi_event kick_reason rssi client _raw | sort - _time",
-        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+        "query": "search `unifi_syslog` (device_name IN ($device|s$) OR (\"$device$\"=\"*\")) (severity IN ($sev|s$) OR (\"$sev$\"=\"*\")) (event_action IN ($action|s$) OR (\"$action$\"=\"*\")) | eval client=coalesce(client_name, client_mac) | table _time device_name severity event_action proc port client kick_reason rssi _raw | sort - _time",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
       },
-      "name": "Device syslog"
-    },
-    "ds_problem_tl": {
-      "type": "ds.search",
-      "options": {
-        "query": "search `unifi_syslog` device_name=\"$device$\" | eval cat=case(isnotnull(kick_reason),\"kick\", match(_raw,\"(?i)disassoc|deauth|leave\"),\"disconnect\", match(_raw,\"(?i)assoc|join\"),\"connect\", true(),\"other\") | timechart span=10m count by cat",
-        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
-      },
-      "name": "Event categories over time"
+      "name": "Syslog"
     }
   },
   "visualizations": {
-    "viz_asset": {
-      "type": "viz.table",
-      "options": {},
-      "dataSources": { "primary": "ds_asset" },
-      "title": "Asset"
-    },
-    "viz_stats": {
-      "type": "viz.line",
-      "options": { "yAxisTitleText": "%" , "yAxisMax": 100 },
-      "dataSources": { "primary": "ds_stats" },
-      "title": "CPU / Memory %"
-    },
-    "viz_problem_tl": {
-      "type": "viz.column",
-      "options": { "stackMode": "stacked" },
-      "dataSources": { "primary": "ds_problem_tl" },
-      "title": "Connect / disconnect / kick over time"
-    },
+    "viz_asset": { "type": "viz.table", "options": {}, "dataSources": { "primary": "ds_asset" }, "title": "Asset" },
+    "viz_version": { "type": "viz.table", "options": {}, "dataSources": { "primary": "ds_version" }, "title": "Software / firmware version" },
+    "viz_stats": { "type": "viz.line", "options": { "yAxisMax": 100, "yAxisTitleText": "%" }, "dataSources": { "primary": "ds_stats" }, "title": "CPU / Memory %" },
+    "viz_uplink": { "type": "viz.line", "options": { "yAxisTitleText": "Mbps" }, "dataSources": { "primary": "ds_uplink" }, "title": "Uplink throughput" },
+    "viz_fan": { "type": "viz.line", "options": { "fieldColors": { "Temp °C": "#d41f1f", "Fan RPM": "#1182f3", "Fan %": "#118832" } }, "dataSources": { "primary": "ds_fan" }, "title": "Fan & temperature (switches/APs that report it)" },
+    "viz_ports": { "type": "viz.table", "options": { "count": 20 }, "dataSources": { "primary": "ds_ports" }, "title": "Active ports (link up)" },
+    "viz_action_tl": { "type": "viz.column", "options": { "stackMode": "stacked", "yAxisTitleText": "events" }, "dataSources": { "primary": "ds_action_tl" }, "title": "Events over time by type" },
     "viz_clients_on": {
-      "type": "viz.table",
-      "options": {
-        "drilldown": "row"
-      },
-      "dataSources": { "primary": "ds_clients_on" },
-      "title": "Clients on this device (click to drill into client)",
-      "eventHandlers": [
-        {
-          "type": "drilldown.linkToDashboard",
-          "options": {
-            "app": "unifi_app_for_splunk",
-            "dashboard": "unifi_client_drilldown",
-            "tokens": [
-              { "token": "client", "value": "row.client_mac.value" }
-            ]
-          }
-        }
-      ]
+      "type": "viz.table", "options": { "drilldown": "row" }, "dataSources": { "primary": "ds_clients_on" },
+      "title": "Clients on these devices (click → client drilldown)",
+      "eventHandlers": [ { "type": "drilldown.linkToDashboard", "options": { "app": "unifi_app_for_splunk", "dashboard": "unifi_client_drilldown", "tokens": [ { "token": "client", "value": "row.client_mac.value" } ] } } ]
     },
-    "viz_syslog": {
-      "type": "viz.table",
-      "options": { "count": 50 },
-      "dataSources": { "primary": "ds_syslog" },
-      "title": "Syslog for this device"
-    }
+    "viz_by_client": { "type": "viz.table", "options": { "count": 25 }, "dataSources": { "primary": "ds_by_client" }, "title": "Clustered by client (top talkers)" },
+    "viz_by_device": { "type": "viz.bar", "options": {}, "dataSources": { "primary": "ds_by_device" }, "title": "Clustered by device (events / errors / warnings)" },
+    "viz_by_message": { "type": "viz.table", "options": { "count": 20 }, "dataSources": { "primary": "ds_by_message" }, "title": "Clustered by message pattern" },
+    "viz_syslog": { "type": "viz.table", "options": { "count": 100 }, "dataSources": { "primary": "ds_syslog" }, "title": "Syslog (filtered by severity / event type)" }
   },
   "layout": {
     "type": "grid",
-    "options": { "width": 1440, "height": 1120 },
+    "options": { "width": 1440, "height": 2000 },
     "structure": [
-      { "item": "viz_asset", "type": "block", "position": { "x": 0, "y": 0, "w": 720, "h": 180 } },
-      { "item": "viz_stats", "type": "block", "position": { "x": 720, "y": 0, "w": 720, "h": 180 } },
-      { "item": "viz_problem_tl", "type": "block", "position": { "x": 0, "y": 180, "w": 960, "h": 280 } },
-      { "item": "viz_clients_on", "type": "block", "position": { "x": 960, "y": 180, "w": 480, "h": 280 } },
-      { "item": "viz_syslog", "type": "block", "position": { "x": 0, "y": 460, "w": 1440, "h": 640 } }
+      { "item": "viz_asset", "type": "block", "position": { "x": 0, "y": 0, "w": 720, "h": 170 } },
+      { "item": "viz_version", "type": "block", "position": { "x": 720, "y": 0, "w": 720, "h": 170 } },
+      { "item": "viz_stats", "type": "block", "position": { "x": 0, "y": 170, "w": 480, "h": 260 } },
+      { "item": "viz_uplink", "type": "block", "position": { "x": 480, "y": 170, "w": 480, "h": 260 } },
+      { "item": "viz_fan", "type": "block", "position": { "x": 960, "y": 170, "w": 480, "h": 260 } },
+      { "item": "viz_ports", "type": "block", "position": { "x": 0, "y": 430, "w": 720, "h": 300 } },
+      { "item": "viz_clients_on", "type": "block", "position": { "x": 720, "y": 430, "w": 720, "h": 300 } },
+      { "item": "viz_action_tl", "type": "block", "position": { "x": 0, "y": 730, "w": 1440, "h": 260 } },
+      { "item": "viz_by_client", "type": "block", "position": { "x": 0, "y": 990, "w": 720, "h": 360 } },
+      { "item": "viz_by_device", "type": "block", "position": { "x": 720, "y": 990, "w": 720, "h": 360 } },
+      { "item": "viz_by_message", "type": "block", "position": { "x": 0, "y": 1350, "w": 1440, "h": 320 } },
+      { "item": "viz_syslog", "type": "block", "position": { "x": 0, "y": 1670, "w": 1440, "h": 330 } }
     ]
   }
 }

@@ -1,0 +1,66 @@
+<form version="1.1" script="setup_macros.js" stylesheet="setup_macros.css">
+  <label>UniFi App - Setup</label>
+  <description>Discover which indexes hold your UniFi TA data and your UniFi syslog, then write the index macros. No restart needed.</description>
+
+  <row>
+    <panel>
+      <html>
+        <div class="unifi-setup-intro">
+          <h3>1. Find the index that holds the UniFi TA data</h3>
+          <p>This searches the last 24h for the TA's device events and shows which index they land in.</p>
+        </div>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Candidate indexes for UniFi TA data (sourcetype=unifi:*)</title>
+        <search>
+          <query>| metasearch index=* (sourcetype=unifi:device OR sourcetype=unifi:device:stats OR sourcetype=unifi:client) | stats count by index | sort - count</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">5</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Candidate indexes for UniFi syslog (sourcetype=ubnt*)</title>
+        <search>
+          <query>| metasearch index=* (sourcetype=ubnt OR sourcetype=ubnt:wireless OR sourcetype=ubnt:dns) | stats count by index, source | sort - count</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">5</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <html>
+        <div class="unifi-setup-form">
+          <h3>2. Set the index macros</h3>
+          <p>Enter the full search expression for each (e.g. <code>index=unifi</code> and
+             <code>index=netops source=sc4s</code>). The current values are pre-filled.</p>
+
+          <label for="unifi_index_def">unifi_index</label>
+          <input type="text" id="unifi_index_def" class="unifi-setup-input" placeholder="index=unifi"/>
+
+          <label for="unifi_syslog_index_def">unifi_syslog_index</label>
+          <input type="text" id="unifi_syslog_index_def" class="unifi-setup-input" placeholder="index=netops source=sc4s"/>
+
+          <div class="unifi-setup-actions">
+            <button id="unifi_setup_save" class="btn btn-primary">Save macros</button>
+            <span id="unifi_setup_status" class="unifi-setup-status"></span>
+          </div>
+          <p class="unifi-setup-note">After saving, run the two lookup-generating searches
+             (<em>Settings &#8594; Searches, reports, and alerts</em>) once, or wait for the 15-minute schedule.</p>
+        </div>
+      </html>
+    </panel>
+  </row>
+</form>

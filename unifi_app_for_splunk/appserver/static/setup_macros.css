@@ -1,0 +1,33 @@
+.unifi-setup-intro h3,
+.unifi-setup-form h3 { margin-top: 4px; }
+
+.unifi-setup-form label {
+    display: block;
+    margin: 14px 0 4px;
+    font-weight: 600;
+}
+
+.unifi-setup-input {
+    width: 420px;
+    max-width: 100%;
+    padding: 6px 8px;
+    font-family: monospace;
+}
+
+.unifi-setup-actions {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.unifi-setup-status { font-weight: 600; }
+.unifi-setup-status.ok { color: #118832; }
+.unifi-setup-status.err { color: #d41f1f; }
+.unifi-setup-status.busy { color: #1182f3; }
+
+.unifi-setup-note {
+    margin-top: 16px;
+    color: #6b6b76;
+    font-size: 12px;
+}

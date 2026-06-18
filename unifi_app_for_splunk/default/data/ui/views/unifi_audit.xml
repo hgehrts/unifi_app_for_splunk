@@ -1,0 +1,148 @@
+<dashboard version="2" theme="dark">
+  <label>UniFi - Auditing</label>
+  <description>Device logins (who/when/where), port up/down history, config changes and severity.</description>
+  <definition><![CDATA[
+{
+  "title": "UniFi - Auditing",
+  "description": "Device SSH logins, link up/down, config changes and error/warning activity.",
+  "inputs": {
+    "input_time": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": { "token": "tr", "defaultValue": "-30d@d,now" }
+    },
+    "input_refresh": {
+      "type": "input.dropdown",
+      "title": "Auto-refresh",
+      "options": {
+        "token": "rfsh",
+        "defaultValue": "0",
+        "items": [
+          { "label": "Off", "value": "0" },
+          { "label": "1m", "value": "1m" },
+          { "label": "5m", "value": "5m" },
+          { "label": "15m", "value": "15m" }
+        ]
+      }
+    }
+  },
+  "dataSources": {
+    "ds_login_kpi": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` proc=dropbear \"auth succeeded\" | stats count as logins dc(device_name) as devices dc(login_src_ip) as sources",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Login KPIs"
+    },
+    "ds_login_fail_kpi": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` proc=dropbear (\"Bad password\" OR \"Login attempt for nonexistent\" OR \"exited\" OR \"Exit before auth\") | stats count as failed_or_aborted",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Failed logins"
+    },
+    "ds_logins": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` proc=dropbear \"auth succeeded\" | eval who=coalesce(login_user,\"?\"), from=coalesce(login_src_ip,\"?\") | stats count as logins, min(_time) as first, max(_time) as last, values(from) as source_ips by device_name who | eval first=strftime(first,\"%F %T\"), last=strftime(last,\"%F %T\") | sort - last | rename device_name as device, who as user | table device user source_ips logins first last",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Device logins"
+    },
+    "ds_login_tl": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` proc=dropbear (\"auth succeeded\" OR \"Bad password\" OR \"nonexistent\") | eval result=if(match(_raw,\"auth succeeded\"),\"success\",\"failed\") | timechart span=1d count by result",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Logins over time"
+    },
+    "ds_login_src": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` proc=dropbear \"auth succeeded\" login_src_ip=* | stats count dc(device_name) as devices values(login_user) as users by login_src_ip | sort - count | rename login_src_ip as source_ip | head 20",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Login sources"
+    },
+    "ds_links": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` proc=kernel link_state=* | stats count as changes, count(eval(link_state==\"down\")) as downs, count(eval(link_state==\"up\")) as ups, max(_time) as last by device_name port | eval last=strftime(last,\"%F %T\") | where changes>1 | sort - changes | rename device_name as device | table device port changes ups downs last | head 30",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Port link changes"
+    },
+    "ds_links_tl": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` proc=kernel link_state=* | eval dp=device_name.\" p\".port | timechart span=1h count by link_state",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Link changes over time"
+    },
+    "ds_changes": {
+      "type": "ds.search",
+      "options": {
+        "query": "search index=unifi sourcetype=unifi:device:detail | sort 0 name _time | streamstats current=f last(firmwareVersion) as prev_fw last(ipAddress) as prev_ip last(name) as prev_name last(state) as prev_state by id | eval chg=mvappend(if(isnotnull(prev_fw) AND firmwareVersion!=prev_fw,\"firmware: \".prev_fw.\" -> \".firmwareVersion,null()), if(isnotnull(prev_ip) AND ipAddress!=prev_ip,\"ip: \".prev_ip.\" -> \".ipAddress,null()), if(isnotnull(prev_state) AND state!=prev_state,\"state: \".prev_state.\" -> \".state,null())) | where isnotnull(chg) | eval _time=strftime(_time,\"%F %T\") | mvexpand chg | table _time name chg | rename name as device, chg as change | sort - _time | head 50",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Config changes"
+    },
+    "ds_severity": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` (severity=err OR severity=warning OR severity=crit OR severity=alert) | timechart span=1h count by severity",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Errors/warnings over time"
+    }
+  },
+  "visualizations": {
+    "viz_login_kpi": { "type": "viz.singlevalue", "options": { "majorColor": "#1182f3" }, "dataSources": { "primary": "ds_login_kpi" }, "title": "Device logins (succeeded)" },
+    "viz_login_fail_kpi": { "type": "viz.singlevalue", "options": { "majorColor": "#b34d00" }, "dataSources": { "primary": "ds_login_fail_kpi" }, "title": "Failed / aborted logins" },
+    "viz_login_tl": { "type": "viz.column", "options": { "stackMode": "stacked" }, "dataSources": { "primary": "ds_login_tl" }, "title": "Logins over time (success / failed)" },
+    "viz_logins": {
+      "type": "viz.table", "options": { "count": 25, "drilldown": "row" }, "dataSources": { "primary": "ds_logins" },
+      "title": "Who logged in, where from, when (click → device drilldown)",
+      "eventHandlers": [ { "type": "drilldown.linkToDashboard", "options": { "app": "unifi_app_for_splunk", "dashboard": "unifi_device_drilldown", "tokens": [ { "token": "device", "value": "row.device.value" } ] } } ]
+    },
+    "viz_login_src": { "type": "viz.table", "options": { "count": 20 }, "dataSources": { "primary": "ds_login_src" }, "title": "Login source IPs" },
+    "viz_links_tl": { "type": "viz.column", "options": { "stackMode": "stacked" }, "dataSources": { "primary": "ds_links_tl" }, "title": "Port link up/down over time" },
+    "viz_links": {
+      "type": "viz.table", "options": { "count": 30, "drilldown": "row" }, "dataSources": { "primary": "ds_links" },
+      "title": "Flapping / changed ports (click → device drilldown)",
+      "eventHandlers": [ { "type": "drilldown.linkToDashboard", "options": { "app": "unifi_app_for_splunk", "dashboard": "unifi_device_drilldown", "tokens": [ { "token": "device", "value": "row.device.value" } ] } } ]
+    },
+    "viz_changes": { "type": "viz.table", "options": { "count": 50 }, "dataSources": { "primary": "ds_changes" }, "title": "Config changes detected (firmware / IP / state)" },
+    "viz_severity": { "type": "viz.area", "options": { "stackMode": "stacked", "fieldColors": { "err": "#d41f1f", "crit": "#8a0000", "alert": "#8a0000", "warning": "#b34d00" } }, "dataSources": { "primary": "ds_severity" }, "title": "Errors & warnings over time" }
+  },
+  "layout": {
+    "type": "grid",
+    "options": { "width": 1440, "height": 1500 },
+    "structure": [
+      { "item": "viz_login_kpi", "type": "block", "position": { "x": 0, "y": 0, "w": 360, "h": 140 } },
+      { "item": "viz_login_fail_kpi", "type": "block", "position": { "x": 360, "y": 0, "w": 360, "h": 140 } },
+      { "item": "viz_login_tl", "type": "block", "position": { "x": 720, "y": 0, "w": 720, "h": 140 } },
+      { "item": "viz_logins", "type": "block", "position": { "x": 0, "y": 140, "w": 960, "h": 380 } },
+      { "item": "viz_login_src", "type": "block", "position": { "x": 960, "y": 140, "w": 480, "h": 380 } },
+      { "item": "viz_links_tl", "type": "block", "position": { "x": 0, "y": 520, "w": 720, "h": 280 } },
+      { "item": "viz_severity", "type": "block", "position": { "x": 720, "y": 520, "w": 720, "h": 280 } },
+      { "item": "viz_links", "type": "block", "position": { "x": 0, "y": 800, "w": 720, "h": 360 } },
+      { "item": "viz_changes", "type": "block", "position": { "x": 720, "y": 800, "w": 720, "h": 360 } }
+    ]
+  }
+}
+  ]]></definition>
+</dashboard>

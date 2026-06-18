@@ -3,6 +3,8 @@
   <view name="unifi_device_drilldown" />
   <view name="unifi_client_drilldown" />
   <view name="unifi_wifi_experience" />
+  <view name="unifi_audit" />
+  <view name="setup" />
   <collection label="Search">
     <view name="search" />
   </collection>

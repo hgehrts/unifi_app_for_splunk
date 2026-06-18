@@ -7,22 +7,39 @@
   "description": "Everything about one client across the whole fleet.",
   "inputs": {
     "input_client": {
-      "type": "input.dropdown",
-      "title": "Client",
+      "type": "input.multiselect",
+      "title": "Client(s)",
       "dataSources": { "primary": "ds_clientlist" },
       "context": {
+        "statics": [ { "label": "All", "value": "*" } ],
         "label": ">primary | seriesByName(\"label\") | renameSeries(\"label\")",
         "value": ">primary | seriesByName(\"client_mac\") | renameSeries(\"value\")"
       },
       "options": {
         "token": "client",
-        "items": ">frame(label, value) | objects()"
+        "defaultValue": [ "*" ],
+        "items": ">frame(label, value) | prepend(statics) | objects()"
       }
     },
     "input_time": {
       "type": "input.timerange",
       "title": "Time range",
       "options": { "token": "tr", "defaultValue": "-7d@h,now" }
+    },
+    "input_refresh": {
+      "type": "input.dropdown",
+      "title": "Auto-refresh",
+      "options": {
+        "token": "rfsh",
+        "defaultValue": "0",
+        "items": [
+          { "label": "Off", "value": "0" },
+          { "label": "30s", "value": "30s" },
+          { "label": "1m", "value": "1m" },
+          { "label": "5m", "value": "5m" },
+          { "label": "15m", "value": "15m" }
+        ]
+      }
     }
   },
   "dataSources": {
@@ -37,7 +54,7 @@
     "ds_identity": {
       "type": "ds.search",
       "options": {
-        "query": "| inputlookup unifi_client_lookup | search client_mac=\"$client$\" | eval oui=substr(replace(lower(client_mac),\":\",\"\"),1,6) | lookup unifi_oui_lookup oui OUTPUT vendor as client_vendor | table client_name client_mac client_ip client_type client_vendor uplink_device_name",
+        "query": "| inputlookup unifi_client_lookup | search client_mac IN ($client|s$) OR (\"$client$\"=\"*\") | eval oui=substr(replace(lower(client_mac),\":\",\"\"),1,6) | lookup unifi_oui_lookup oui OUTPUT vendor as client_vendor | table client_name client_mac client_ip client_type client_vendor uplink_device_name | sort client_name",
         "queryParameters": {}
       },
       "name": "Client identity"
@@ -45,32 +62,36 @@
     "ds_roam": {
       "type": "ds.search",
       "options": {
-        "query": "search `unifi_syslog_index` sourcetype=ubnt:wireless client_mac=\"$client$\" | where isnotnull(device_name) | timechart span=10m dc(device_name) as APs_in_window | eval APs_in_window=coalesce(APs_in_window,0)",
-        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+        "query": "search `unifi_syslog_index` sourcetype=ubnt:wireless (client_mac IN ($client|s$) OR (\"$client$\"=\"*\")) | where isnotnull(device_name) | timechart span=10m dc(device_name) as APs_in_window | eval APs_in_window=coalesce(APs_in_window,0)",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
       },
       "name": "Roaming spread"
     },
     "ds_ap_dist": {
       "type": "ds.search",
       "options": {
-        "query": "search `unifi_syslog_index` sourcetype=ubnt:wireless client_mac=\"$client$\" | stats count by device_name | sort - count",
-        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+        "query": "search `unifi_syslog_index` sourcetype=ubnt:wireless (client_mac IN ($client|s$) OR (\"$client$\"=\"*\")) | eval client=coalesce(client_name, client_mac) | stats count by device_name | sort - count",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
       },
       "name": "Events per AP"
     },
     "ds_rssi": {
       "type": "ds.search",
       "options": {
-        "query": "search `unifi_syslog` client_mac=\"$client$\" rssi=* | timechart span=10m avg(rssi) as avg_rssi min(rssi) as min_rssi",
-        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+        "query": "search `unifi_syslog` (client_mac IN ($client|s$) OR (\"$client$\"=\"*\")) rssi=* | eval client=coalesce(client_name, client_mac) | timechart span=10m avg(rssi) as avg_rssi min(rssi) as min_rssi by client",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
       },
       "name": "RSSI over time"
     },
     "ds_events": {
       "type": "ds.search",
       "options": {
-        "query": "search `unifi_syslog` client_mac=\"$client$\" | table _time device_name proc wifi_event kick_reason rssi _raw | sort - _time",
-        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+        "query": "search `unifi_syslog` (client_mac IN ($client|s$) OR (\"$client$\"=\"*\")) | eval client=coalesce(client_name, client_mac) | table _time client device_name severity event_action proc wifi_event kick_reason rssi _raw | sort - _time",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
       },
       "name": "Client syslog"
     }

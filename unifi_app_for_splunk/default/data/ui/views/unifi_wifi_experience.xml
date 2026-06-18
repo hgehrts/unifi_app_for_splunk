@@ -10,8 +10,24 @@
       "type": "input.timerange",
       "title": "Time range",
       "options": { "token": "tr", "defaultValue": "-24h@h,now" }
+    },
+    "input_refresh": {
+      "type": "input.dropdown",
+      "title": "Auto-refresh",
+      "options": {
+        "token": "rfsh",
+        "defaultValue": "0",
+        "items": [
+          { "label": "Off", "value": "0" },
+          { "label": "30s", "value": "30s" },
+          { "label": "1m", "value": "1m" },
+          { "label": "5m", "value": "5m" },
+          { "label": "15m", "value": "15m" }
+        ]
+      }
     }
   },
+  "defaults": { "dataSources": { "ds.search": { "options": { "refresh": "$rfsh$", "refreshType": "delay" } } } },
   "dataSources": {
     "ds_kick_ap": {
       "type": "ds.search",
