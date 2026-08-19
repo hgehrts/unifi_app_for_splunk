@@ -8,7 +8,7 @@
 - **Release package:** [`dist/`](../dist/)
 - **In-app README:** [`unifi_app_for_splunk/README.md`](../unifi_app_for_splunk/README.md)
 - **Design / decision log:** [`docs/correlation-dashboards-plan.md`](correlation-dashboards-plan.md)
-- **Current version:** 1.0.1
+- **Current version:** 1.2.0
 
 ---
 

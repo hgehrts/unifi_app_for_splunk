@@ -11,8 +11,8 @@
         "author": [
             {
                 "company": null,
-                "email": null,
-                "name": "UniFi App for Splunk"
+                "email": "hgehrts@splunk.com",
+                "name": "Hans-Henning Gehrts"
             }
         ],
         "classification": {

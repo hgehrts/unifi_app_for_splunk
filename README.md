@@ -2,7 +2,7 @@
 
 Consolidated dashboards, syslog correlation and ID→name enrichment for UniFi
 gear. **Companion app** to the data-collector add-on
-[`TA_unifi_ng`](https://github.com/) (UniFi Network Add-on for Splunk).
+[`TA_unifi_ng`](https://github.com/hgehrts/TA_unifi_ng) (UniFi Network Add-on for Splunk).
 
 It joins two normally-disconnected feeds into one investigable picture:
 

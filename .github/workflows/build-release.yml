@@ -1,0 +1,67 @@
+name: build-release
+
+# Builds the installable Splunk package and, on a version tag, publishes it as a
+# GitHub Release asset (tarball + SHA-256).
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read app version
+        id: ver
+        run: echo "version=$(cat unifi_app_for_splunk/VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Build package
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Validate package
+        run: |
+          set -euo pipefail
+          VER="${{ steps.ver.outputs.version }}"
+          TARBALL="dist/unifi_app_for_splunk-${VER}.tar.gz"
+          test -f "$TARBALL" || { echo "::error::missing $TARBALL"; exit 1; }
+
+          TOP=$(tar -tzf "$TARBALL" | awk -F/ '{print $1}' | sort -u)
+          [ "$TOP" = "unifi_app_for_splunk" ] || { echo "::error::unexpected top-level: $TOP"; exit 1; }
+
+          if tar -tzf "$TARBALL" | grep -E '(__pycache__|\.pyc$|\.DS_Store|/local/)'; then
+            echo "::error::package contains junk files"; exit 1
+          fi
+
+          ( cd dist && shasum -c "unifi_app_for_splunk-${VER}.tar.gz.sha256" )
+          echo "Package OK: $TARBALL"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: unifi_app_for_splunk-${{ steps.ver.outputs.version }}
+          path: |
+            dist/unifi_app_for_splunk-${{ steps.ver.outputs.version }}.tar.gz
+            dist/unifi_app_for_splunk-${{ steps.ver.outputs.version }}.tar.gz.sha256
+          if-no-files-found: error
+
+      - name: Publish release (tag builds only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/unifi_app_for_splunk-${{ steps.ver.outputs.version }}.tar.gz
+            dist/unifi_app_for_splunk-${{ steps.ver.outputs.version }}.tar.gz.sha256
+          generate_release_notes: true
+          fail_on_unmatched_files: true

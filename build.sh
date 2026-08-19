@@ -39,7 +39,8 @@ else
   tar -czf "$OUT" "$APP_DIR"
 fi
 
-shasum -a 256 "$OUT" > "${OUT}.sha256"
+HASH=$(shasum -a 256 "$OUT" | awk '{print $1}')
+printf '%s  %s\n' "$HASH" "$(basename "$OUT")" > "${OUT}.sha256"
 
 echo "Built: $OUT"
 echo "SHA-256: $(awk '{print $1}' "${OUT}.sha256")"
