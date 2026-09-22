@@ -153,4 +153,4 @@ Check that the Splunk user running scheduled searches can read the TA index and 
 
 - **Documentation:** https://github.com/hgehrts/unifi_app_for_splunk/blob/main/README.md
 - **Issues:** https://github.com/hgehrts/unifi_app_for_splunk/issues
-- **Contact:** hgehrts@splunk.com (or open a GitHub issue)
+- **Contact:** hgehrts@gmail.com (or open a GitHub issue)

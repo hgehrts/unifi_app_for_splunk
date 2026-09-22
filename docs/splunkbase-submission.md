@@ -15,7 +15,7 @@ Use this as a copy-paste guide when submitting at [Splunkbase Developer Portal](
 | **License** | Apache-2.0 |
 | **Support model** | Developer Supported |
 | **Author / Created by** | Hans-Henning Gehrts |
-| **Contact email** | hgehrts@splunk.com |
+| **Contact email** | hgehrts@gmail.com |
 | **Source code URL** | https://github.com/hgehrts/unifi_app_for_splunk |
 | **Categories** | Network, IT Operations |
 | **Splunk compatibility** | Enterprise 9.0+, 10.x (Dashboard Studio; tested on 10.4) |
