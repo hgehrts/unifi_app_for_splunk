@@ -35,35 +35,25 @@
             "text": "LICENSE",
             "uri": null
         },
-        "port": null,
         "privacyPolicy": {
             "name": null,
             "text": null,
             "uri": null
         },
         "releaseDate": null,
-        "tags": [
-            "unifi",
-            "network",
-            "ubiquiti",
-            "syslog",
-            "dashboards"
-        ],
+        "releaseNotes": {
+            "name": "README",
+            "text": "./README.md",
+            "uri": null
+        },
         "title": "UniFi App for Splunk"
     },
-    "inputGroups": {},
+    "inputGroups": null,
     "platformRequirements": {
         "splunk": {
-            "Enterprise": ">=9.0"
+            "Enterprise": "*"
         }
     },
     "schemaVersion": "2.0.0",
-    "supportedDeployments": [
-        "_standalone",
-        "_distributed"
-    ],
-    "targetWorkloads": [
-        "_search_heads"
-    ],
-    "tasks": []
+    "tasks": null
 }
