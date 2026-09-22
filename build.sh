@@ -31,13 +31,23 @@ find "$APP_DIR" \( -name '._*' -o -name '.DS_Store' \) -delete 2>/dev/null || tr
 rm -rf "$APP_DIR/local" 2>/dev/null || true
 command -v xattr >/dev/null 2>&1 && xattr -cr "$APP_DIR" 2>/dev/null || true
 
+# Stage a clean copy so we can fix permissions without touching the source tree.
+STAGE="dist/.build_stage"
+rm -rf "$STAGE"
+mkdir -p "$STAGE"
+cp -R "$APP_DIR" "$STAGE/$APP_DIR"
+find "$STAGE/$APP_DIR" \( -name '__pycache__' -o -name '*.pyc' -o -name '*.pyo' \) -prune -exec rm -rf {} + 2>/dev/null || true
+find "$STAGE/$APP_DIR" -type d -exec chmod 700 {} +
+find "$STAGE/$APP_DIR" -type f -exec chmod 600 {} +
+
 # Build a single-top-level-dir tarball without macOS metadata.
 export COPYFILE_DISABLE=1
 if tar --no-mac-metadata -czf /dev/null --files-from /dev/null 2>/dev/null; then
-  tar --no-mac-metadata -czf "$OUT" "$APP_DIR"
+  tar --no-mac-metadata -czf "$OUT" -C "$STAGE" "$APP_DIR"
 else
-  tar -czf "$OUT" "$APP_DIR"
+  tar -czf "$OUT" -C "$STAGE" "$APP_DIR"
 fi
+rm -rf "$STAGE"
 
 HASH=$(shasum -a 256 "$OUT" | awk '{print $1}')
 printf '%s  %s\n' "$HASH" "$(basename "$OUT")" > "${OUT}.sha256"

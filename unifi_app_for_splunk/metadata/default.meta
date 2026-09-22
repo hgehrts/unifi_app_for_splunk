@@ -2,7 +2,7 @@
 # and macros apply regardless of the app context the search runs in.
 
 []
-access = read : [ * ], write : [ admin, power ]
+access = read : [ * ], write : [ admin, sc_admin, power ]
 export = system
 
 [transforms]

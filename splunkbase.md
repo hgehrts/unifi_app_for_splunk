@@ -7,6 +7,31 @@ Copy the sections below into the Splunkbase app listing fields (Short Descriptio
 
 ---
 
+## Splunkbase form answers
+
+Use these values on the Splunkbase listing form.
+
+### CIM Model Version
+
+This app **does not ship CIM mappings** (no `eventtypes.conf` / `tags.conf`). CIM
+normalization lives in the companion add-on `TA_unifi_ng`.
+
+- If the field is optional / “not applicable”: leave it empty.
+- If Splunkbase requires a selection because the app visualizes CIM-mapped TA
+  data: tick **4.x, 5.x, 6.x, 7.x, 8.x**.
+- Do **not** tick **3.x**.
+
+### Splunk Enterprise compatibility
+
+Dashboard Studio requires Splunk **9.0 or later**. Tick every 9.x and 10.x
+version the form offers, at least:
+
+**9.0, 9.1, 9.2, 9.3, 9.4, 10.0, 10.1, 10.2, 10.3, 10.4, 10.5**
+
+Tested on Splunk Enterprise **10.4**. Splunk Cloud (Victoria) 9.0+.
+
+---
+
 ## Short Description
 
 Dashboards, syslog correlation and ID→name enrichment for UniFi gear. Joins TA_unifi_ng asset data with SC4S syslog so cryptic MACs become readable names, IPs and vendors.
@@ -70,10 +95,11 @@ The app does not phone home and includes no product analytics.
 
 ### Compatibility
 
-| Platform | Minimum version |
+| Platform | Versions to select on Splunkbase |
 |---|---|
-| Splunk Enterprise | 9.0+ (Dashboard Studio) |
+| Splunk Enterprise | **9.0 – 10.5** (Dashboard Studio; tested on 10.4) |
 | Splunk Cloud (Victoria) | 9.0+ |
+| CIM | **Not mapped by this app.** If the form requires a value: **4.x–8.x** (same as `TA_unifi_ng`). Do not select 3.x. |
 
 Tested on Splunk Enterprise 10.x against UniFi Network 10.4.
 

@@ -143,9 +143,9 @@ Applied automatically to `ubnt`, `ubnt:wireless`, `ubnt:dns`:
 | Field | From | Example |
 |-------|------|---------|
 | `device_name` | device lookup | `U7DG` |
-| `device_ip`, `device_model`, `device_state` | device lookup | `192.168.1.144`, `U7 Pro Max` |
+| `device_ip`, `device_model`, `device_state` | device lookup | `192.0.2.10`, `U7 Pro Max` |
 | `client_name` | client lookup | `Sigitas-iPhone 59:16` |
-| `client_ip`, `client_type` | client lookup | `192.168.1.113`, `WIRELESS` |
+| `client_ip`, `client_type` | client lookup | `192.0.2.20`, `WIRELESS` |
 | `client_vendor` | OUI lookup | `Apple, Inc.` |
 | `proc` | extraction | `hostapd`, `stahtd`, `stamgr`, `kernel`, `wevent`, `dropbear`, `ubnt-fanctrl` |
 | `wifi_event` | extraction | `associated`, `disassociated`, `EVENT_STA_LEAVE` |
@@ -156,7 +156,7 @@ Applied automatically to `ubnt`, `ubnt:wireless`, `ubnt:dns`:
 | `port`, `link_state` | kernel | `3`, `up`/`down` |
 | `poe_port`, `poe_event` | kernel | `5`, `enabled`/`overload` |
 | `device_temp_c`, `fan_rpm`, `fan_speed_pct`, `fan_pwm_set`/`_actual` | `ubnt-fanctrl` | `42`, `2311`, `25` |
-| `login_user`, `login_src_ip`, `login_result` | dropbear (SSH) | `admin`, `192.168.1.1`, `auth succeeded` |
+| `login_user`, `login_src_ip`, `login_result` | dropbear (SSH) | `admin`, `192.0.2.1`, `auth succeeded` |
 
 ---
 
@@ -237,6 +237,11 @@ unifi_app_for_splunk/
 ---
 
 ## 9. Changelog
+
+**1.3.0**
+- Splunkbase/SLIM-compatible `app.manifest`, Apache-2.0 `LICENSE` in the app
+  package, and AppInspect cloud packaging permissions.
+- Public contact address is `hgehrts@gmail.com`.
 
 **1.2.0**
 - New **Topology** dashboard: live network map (clients → APs → switches → the

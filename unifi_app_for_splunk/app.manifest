@@ -1,59 +1,58 @@
 {
-    "dependencies": {
-        "network-diagram-viz": {
-            "version": "*",
-            "optional": true,
-            "package": null
-        }
-    },
-    "incompatibleApps": {},
+    "schemaVersion": "2.0.0",
     "info": {
-        "author": [
-            {
-                "company": null,
-                "email": "hgehrts@gmail.com",
-                "name": "Hans-Henning Gehrts"
-            }
-        ],
-        "classification": {
-            "categories": [
-                "Network",
-                "IT Operations"
-            ],
-            "developmentStatus": "Production/Stable",
-            "intendedAudience": "IT Operations"
-        },
-        "commonInformationModels": null,
-        "description": "Consolidated dashboards, syslog correlation and ID->name enrichment for UniFi gear. Companion to TA_unifi_ng.",
+        "title": "UniFi App for Splunk",
         "id": {
             "group": null,
             "name": "unifi_app_for_splunk",
-            "version": "1.2.0"
+            "version": "1.3.0"
         },
+        "author": [
+            {
+                "name": "Hans-Henning Gehrts",
+                "email": "hgehrts@gmail.com",
+                "company": null
+            }
+        ],
+        "releaseDate": "2026-09-22",
+        "description": "Consolidated dashboards, syslog correlation and ID->name enrichment for UniFi gear. Companion to TA_unifi_ng.",
+        "classification": {
+            "intendedAudience": "IT Operations",
+            "categories": [
+                "IT Operations",
+                "Network Device"
+            ],
+            "developmentStatus": "Production/Stable"
+        },
+        "commonInformationModels": null,
         "license": {
             "name": "Apache-2.0",
             "text": "LICENSE",
-            "uri": null
+            "uri": "https://www.apache.org/licenses/LICENSE-2.0"
         },
         "privacyPolicy": {
             "name": null,
             "text": null,
             "uri": null
         },
-        "releaseDate": null,
         "releaseNotes": {
             "name": "README",
             "text": "./README.md",
             "uri": null
-        },
-        "title": "UniFi App for Splunk"
+        }
     },
+    "dependencies": {
+        "network-diagram-viz": {
+            "version": "*",
+            "optional": true
+        }
+    },
+    "tasks": null,
     "inputGroups": null,
+    "incompatibleApps": null,
     "platformRequirements": {
         "splunk": {
             "Enterprise": "*"
         }
-    },
-    "schemaVersion": "2.0.0",
-    "tasks": null
+    }
 }

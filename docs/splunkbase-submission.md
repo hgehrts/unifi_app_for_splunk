@@ -11,14 +11,15 @@ Use this as a copy-paste guide when submitting at [Splunkbase Developer Portal](
 | **App / package name** | UniFi App for Splunk |
 | **Package ID** | `unifi_app_for_splunk` |
 | **Type** | App |
-| **Version** | 1.2.0 |
+| **Version** | 1.3.0 |
 | **License** | Apache-2.0 |
 | **Support model** | Developer Supported |
 | **Author / Created by** | Hans-Henning Gehrts |
 | **Contact email** | hgehrts@gmail.com |
 | **Source code URL** | https://github.com/hgehrts/unifi_app_for_splunk |
 | **Categories** | Network, IT Operations |
-| **Splunk compatibility** | Enterprise 9.0+, 10.x (Dashboard Studio; tested on 10.4) |
+| **Splunk compatibility** | **9.0, 9.1, 9.2, 9.3, 9.4, 10.0, 10.1, 10.2, 10.3, 10.4, 10.5** (Dashboard Studio; tested on 10.4) |
+| **CIM Model Version** | Not shipped by this app. If required: **4.x–8.x** (same as `TA_unifi_ng`). Not 3.x. |
 | **Splunk Cloud** | Expected compatible — submit AppInspect cloud report |
 
 ## Prerequisites (state clearly in listing)
@@ -29,7 +30,7 @@ Use this as a copy-paste guide when submitting at [Splunkbase Developer Portal](
 
 ## Package to upload
 
-- https://github.com/hgehrts/unifi_app_for_splunk/releases/download/v1.2.0/unifi_app_for_splunk-1.2.0.tar.gz
+- https://github.com/hgehrts/unifi_app_for_splunk/releases/download/v1.3.0/unifi_app_for_splunk-1.3.0.tar.gz
 
 ## Icons
 
@@ -42,9 +43,9 @@ Use this as a copy-paste guide when submitting at [Splunkbase Developer Portal](
 ## AppInspect
 
 ```bash
-splunk-appinspect inspect dist/unifi_app_for_splunk-1.2.0.tar.gz \
-  --included-tags cloud,private --mode precert \
-  --output-file docs/appinspect-v1.2.0.json
+splunk-appinspect inspect dist/unifi_app_for_splunk-1.3.0.tar.gz \
+  --included-tags cloud --included-tags private_app --mode precert \
+  --output-file docs/appinspect-v1.3.0.json
 ```
 
 ## Short description (≤250 chars)
