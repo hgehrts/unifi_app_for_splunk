@@ -80,7 +80,7 @@ The ready-to-install app is committed under
 
 ```bash
 ./build.sh            # -> dist/unifi_app_for_splunk-<VERSION>.tar.gz (+ .sha256)
-./build.sh 1.0.3      # override version label
+./build.sh 1.3.1      # override version label
 ```
 
 ---

@@ -173,7 +173,7 @@ Applied automatically to `ubnt`, `ubnt:wireless`, `ubnt:dns`:
 
 Drilldowns pass the device name / client MAC as a token, and the target
 dashboard shows **only** the selected entities' telemetry, asset and syslog.
-Every dashboard has an **Auto-refresh** control (default Off; 30s–15m).
+Every Dashboard Studio view has an **Auto-refresh** control (default Off; 1m–15m). Dashboard Studio warns if refresh is under 60 seconds, so 30s is not offered there. Topology (Classic) still refreshes every 30s.
 
 ### Note on audit scope
 
@@ -237,6 +237,11 @@ unifi_app_for_splunk/
 ---
 
 ## 9. Changelog
+
+**1.3.1**
+- Stop Dashboard Studio's "Refresh rates of less than 60 seconds might impact
+  search performance" popup: Auto-refresh Off is now empty (not `0` seconds),
+  and the 30s choice is removed from Studio dashboards (minimum 1m).
 
 **1.3.0**
 - Splunkbase/SLIM-compatible `app.manifest`, Apache-2.0 `LICENSE` in the app

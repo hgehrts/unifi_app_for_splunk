@@ -16,9 +16,9 @@
       "title": "Auto-refresh",
       "options": {
         "token": "rfsh",
-        "defaultValue": "0",
+        "defaultValue": "",
         "items": [
-          { "label": "Off", "value": "0" },
+          { "label": "Off", "value": "" },
           { "label": "1m", "value": "1m" },
           { "label": "5m", "value": "5m" },
           { "label": "15m", "value": "15m" }

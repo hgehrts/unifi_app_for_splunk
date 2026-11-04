@@ -11,7 +11,7 @@ Use this as a copy-paste guide when submitting at [Splunkbase Developer Portal](
 | **App / package name** | UniFi App for Splunk |
 | **Package ID** | `unifi_app_for_splunk` |
 | **Type** | App |
-| **Version** | 1.3.0 |
+| **Version** | 1.3.1 |
 | **License** | Apache-2.0 |
 | **Support model** | Developer Supported |
 | **Author / Created by** | Hans-Henning Gehrts |
@@ -30,7 +30,7 @@ Use this as a copy-paste guide when submitting at [Splunkbase Developer Portal](
 
 ## Package to upload
 
-- https://github.com/hgehrts/unifi_app_for_splunk/releases/download/v1.3.0/unifi_app_for_splunk-1.3.0.tar.gz
+- https://github.com/hgehrts/unifi_app_for_splunk/releases/download/v1.3.1/unifi_app_for_splunk-1.3.1.tar.gz
 
 ## Icons
 
@@ -43,9 +43,9 @@ Use this as a copy-paste guide when submitting at [Splunkbase Developer Portal](
 ## AppInspect
 
 ```bash
-splunk-appinspect inspect dist/unifi_app_for_splunk-1.3.0.tar.gz \
+splunk-appinspect inspect dist/unifi_app_for_splunk-1.3.1.tar.gz \
   --included-tags cloud --included-tags private_app --mode precert \
-  --output-file docs/appinspect-v1.3.0.json
+  --output-file docs/appinspect-v1.3.1.json
 ```
 
 ## Short description (≤250 chars)
