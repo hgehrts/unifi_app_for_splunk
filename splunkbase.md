@@ -40,7 +40,7 @@ Dashboards, syslog correlation and ID→name enrichment for UniFi gear. Joins TA
 
 ## Summary
 
-UniFi App for Splunk is the companion to the UniFi Network Add-on for Splunk. It bridges two feeds that normally do not share human-friendly identifiers: structured asset and telemetry from the UniFi Integration API (via `TA_unifi_ng`) and device syslog via Splunk Connect for Syslog (SC4S). Auto-refreshing KV Store lookups resolve cryptic device and client IDs at search time; bundled MAC-OUI enrichment adds hardware vendor. Six linked Dashboard Studio views cover fleet health, topology, WiFi experience, auditing, and per-device / per-client drilldown. Index-agnostic via editable macros and an in-app Setup page.
+UniFi App for Splunk is the companion to the UniFi Network Add-on for Splunk. It bridges two feeds that normally do not share human-friendly identifiers: structured asset and telemetry from the UniFi Integration API (via `TA_unifi_ng`) and device syslog via Splunk Connect for Syslog (SC4S). Auto-refreshing KV Store lookups resolve cryptic device and client IDs at search time; bundled MAC-OUI enrichment adds hardware vendor. Linked dashboards cover fleet health, topology, WiFi experience, auditing, NetFlow analysis, and per-device / per-client drilldown. Index-agnostic via editable macros and an in-app Setup page.
 
 ---
 
@@ -60,12 +60,13 @@ Example: `942a6f4877f1 … kick-sta … reason:Low RSSI` becomes `U7DG kicked Si
 
 | Dashboard | Purpose |
 |-----------|---------|
-| **UniFi – Topology** | Live map (clients → APs → switches → Dream Machine) with uplink throughput labels, error colouring, time-travel picker. *Optional: Network Diagram Viz app.* |
+| **UniFi – Topology** | Live star map (clients → APs → switches → Dream Machine) with uplink throughput labels, error colouring, time-travel picker, node click-through. *Optional: Network Diagram Viz app.* |
 | **UniFi – Overview** | Online/offline, clients seen, WiFi disconnects vs a same-weekday/hour "normal band", top kick reasons, problem devices. |
 | **UniFi – Device Drilldown** | Multi-select device view: asset, firmware, CPU/memory, uplink, fan/temperature, ports/PoE, clients, filtered syslog. |
-| **UniFi – Client Drilldown** | Multi-select client view: identity, vendor, APs touched, roaming, RSSI, full syslog. |
+| **UniFi – Client Drilldown** | Multi-select client view: identity, vendor, wired switch or Wi-Fi AP attachment, APs/switches used, optional uplink logs, raw syslog. |
 | **UniFi – WiFi Experience & Roaming** | Fleet wireless RCA: kicks by AP, association failures, low-RSSI clients, roaming churn. |
 | **UniFi – Auditing** | SSH logins, port up/down, config-change hints, errors/warnings timeline. |
+| **UniFi – Flow Analysis** | NetFlow/IPFIX talkers, conversations, ports, protocol mix, UniFi client enrichment. |
 
 All dashboards include auto-refresh and link to each other via drilldown tokens.
 
@@ -75,7 +76,7 @@ All dashboards include auto-refresh and link to each other via drilldown tokens.
 |---|---|
 | KV Store collections | Device and client lookup tables (written by scheduled searches in this app) |
 | `lookups/unifi_oui.csv` | Bundled IEEE OUI registry (~39k rows) for vendor enrichment |
-| Macros `unifi_index`, `unifi_syslog_index` | Point searches at your TA and SC4S indexes (defaults: `unifi`, `netops`) |
+| Macros `unifi_index`, `unifi_syslog_index`, `unifi_netflow_index` | Point searches at your TA, SC4S and NetFlow indexes (defaults: `unifi`, `netops`, `netflow`) |
 
 This app performs **read** searches against your data and **writes only its own KV Store lookups**. It does not modify UniFi controller settings and stores no credentials.
 
@@ -129,6 +130,7 @@ Any user who can access the app and run searches against the configured indexes 
 4. Open **UniFi App for Splunk → Setup** (or **Settings → Advanced search → Search macros**) and set:
    - `unifi_index` — where `TA_unifi_ng` writes (default: `index=unifi`)
    - `unifi_syslog_index` — where SC4S writes UniFi syslog (default: `index=netops source=sc4s`)
+   - `unifi_netflow_index` — where Stream NetFlow lands (default: `index=netflow`)
 5. Run the scheduled searches once: *unifi - rebuild device lookup* and *unifi - rebuild client lookup* (or wait ~15 minutes).
 
 ### Splunk Cloud

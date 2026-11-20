@@ -8,7 +8,7 @@
 - **Release package:** [`dist/`](../dist/)
 - **In-app README:** [`unifi_app_for_splunk/README.md`](../unifi_app_for_splunk/README.md)
 - **Design / decision log:** [`docs/correlation-dashboards-plan.md`](correlation-dashboards-plan.md)
-- **Current version:** 1.2.0
+- **Current version:** 1.4.0
 
 ---
 
@@ -53,7 +53,7 @@ UniFi devices ──syslog──► SC4S ─────────────
 - The TA is a **pure read-only collector** — unchanged by this app.
 - This app **reads** the TA's `unifi:device` / `unifi:client` events to build
   enrichment lookups, and **decorates** the SC4S `ubnt*` events with the result.
-- Both indexes are referenced only through two editable macros (below), so the
+- Indexes are referenced only through editable macros (below), so the
   app adapts to any environment without code edits.
 
 ---
@@ -73,14 +73,14 @@ UniFi devices ──syslog──► SC4S ─────────────
 1. Download `unifi_app_for_splunk-<version>.tar.gz` from
    [`dist/`](../dist/) (or a GitHub Release).
 2. Splunk Web → **Apps → Manage Apps → Install app from file** → upload → restart.
-3. Set the two index macros (next section) for your environment.
+3. Set the index macros (next section) for your environment.
 4. Run the two lookup-generating searches once (or wait for the schedule).
 
 ---
 
 ## 5. Setup — point the app at your indexes (required)
 
-All index references live in **two search macros**. Edit them once; no restart
+All index references live in **search macros**. Edit them once; no restart
 needed (they are search-time). *Settings → Advanced search → Search macros →
 app `unifi_app_for_splunk`.*
 
@@ -88,11 +88,12 @@ app `unifi_app_for_splunk`.*
 |-------|---------|---------|
 | [`unifi_index`](https://help.splunk.com/en/splunk-cloud-platform/search/search-manual/9.4/use-search-macros-in-searches) | `index=unifi` | Where `TA_unifi_ng` writes asset/telemetry. |
 | `unifi_syslog_index` | `index=netops source=sc4s` | Where UniFi device syslog lands. |
+| `unifi_netflow_index` | `index=netflow` | Where Splunk Stream NetFlow/IPFIX lands. |
 
-These two macros are the **only** place indexes are referenced; every saved
+These macros are the **only** place indexes are referenced; every saved
 search, lookup generator and dashboard builds on them. Convenience macros
 (`unifi_syslog`, `unifi_devices`, `unifi_clients`, `unifi_device_stats`,
-`mac_nocolon()`) are derived from them.
+`unifi_netflow`, `mac_nocolon()`) are derived from them.
 
 ---
 
@@ -150,9 +151,11 @@ so the target shows **only** that entity.
 | Dashboard | View | Purpose |
 |-----------|------|---------|
 | **UniFi – Overview** | [`unifi_overview.xml`](../unifi_app_for_splunk/default/data/ui/views/unifi_overview.xml) | Devices online/offline, **clients-seen and WiFi-disconnects vs a "normal" band** (same weekday+hour over the prior 28 days, ±10 %), top kick reasons, problem devices, noisiest clients. Click a device/client → drilldown. |
+| **UniFi – Topology** | [`unifi_topology.xml`](../unifi_app_for_splunk/default/data/ui/views/unifi_topology.xml) | Star map with node click-through to Device/Client Drilldown. |
 | **UniFi – Device Drilldown** | [`unifi_device_drilldown.xml`](../unifi_app_for_splunk/default/data/ui/views/unifi_device_drilldown.xml) | One device: asset, CPU/memory telemetry, connect/disconnect/kick timeline, clients on it (clickable), full syslog. |
-| **UniFi – Client Drilldown** | [`unifi_client_drilldown.xml`](../unifi_app_for_splunk/default/data/ui/views/unifi_client_drilldown.xml) | One client across the fleet: identity + vendor, which APs it touches, roaming spread, RSSI over time, full syslog. |
+| **UniFi – Client Drilldown** | [`unifi_client_drilldown.xml`](../unifi_app_for_splunk/default/data/ui/views/unifi_client_drilldown.xml) | One client: identity, wired switch or Wi-Fi AP attachment, APs/switches used, optional uplink logs, raw syslog. |
 | **UniFi – WiFi Experience & Roaming** | [`unifi_wifi_experience.xml`](../unifi_app_for_splunk/default/data/ui/views/unifi_wifi_experience.xml) | Fleet-wide wireless RCA: kicks by AP, association failures over time, most-kicked low-RSSI clients, roaming churn, TX-retry by AP. |
+| **UniFi – Flow Analysis** | [`unifi_flow_analysis.xml`](../unifi_app_for_splunk/default/data/ui/views/unifi_flow_analysis.xml) | NetFlow/IPFIX talkers, conversations, ports, protocol mix, UniFi client enrichment. |
 
 The "normal band" is the mean of the **same weekday and hour** over the trailing
 28 days, drawn as `Normal low`/`Normal high` lines at ±10 %, so an operator can

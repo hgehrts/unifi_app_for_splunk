@@ -5,7 +5,7 @@
         "id": {
             "group": null,
             "name": "unifi_app_for_splunk",
-            "version": "1.3.1"
+            "version": "1.4.0"
         },
         "author": [
             {
@@ -14,7 +14,7 @@
                 "company": null
             }
         ],
-        "releaseDate": "2026-09-22",
+        "releaseDate": "2026-11-20",
         "description": "Consolidated dashboards, syslog correlation and ID->name enrichment for UniFi gear. Companion to TA_unifi_ng.",
         "classification": {
             "intendedAudience": "IT Operations",

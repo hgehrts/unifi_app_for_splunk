@@ -1,10 +1,10 @@
 <dashboard version="2" theme="dark">
   <label>UniFi - Client Drilldown</label>
-  <description>One client's identity, connection history, roaming and syslog across all APs.</description>
+  <description>Wireless and wired clients: identity, uplink switch or APs, optional uplink/AP logs, raw syslog.</description>
   <definition><![CDATA[
 {
   "title": "UniFi - Client Drilldown",
-  "description": "Everything about one client across the whole fleet.",
+  "description": "One client across the fleet: identity, attached switch or APs, optional uplink logs, raw syslog.",
   "inputs": {
     "input_client": {
       "type": "input.multiselect",
@@ -21,6 +21,18 @@
         "token": "client",
         "defaultValue": "*",
         "items": ">frame(label, value) | prepend(formattedStatics) | objects()"
+      }
+    },
+    "input_uplink": {
+      "type": "input.dropdown",
+      "title": "Include uplink / AP logs",
+      "options": {
+        "token": "include_uplink",
+        "defaultValue": "0",
+        "items": [
+          { "label": "Client syslog only", "value": "0" },
+          { "label": "Client + current uplink and APs seen in range", "value": "1" }
+        ]
       }
     },
     "input_time": {
@@ -55,10 +67,36 @@
     "ds_identity": {
       "type": "ds.search",
       "options": {
-        "query": "| inputlookup unifi_client_lookup | search client_mac IN ($client|s$) OR (\"$client$\"=\"*\") | eval oui=substr(replace(lower(client_mac),\":\",\"\"),1,6) | lookup unifi_oui_lookup oui OUTPUT vendor as client_vendor | table client_name client_mac client_ip client_type client_vendor uplink_device_name | sort client_name",
+        "query": "| inputlookup unifi_client_lookup | search client_mac IN ($client|s$) OR (\"$client$\"=\"*\") | eval oui=substr(replace(lower(client_mac),\":\",\"\"),1,6) | lookup unifi_oui_lookup oui OUTPUT vendor as client_vendor | eval attachment=if(upper(client_type)=\"WIRED\",\"wired\",\"Wi-Fi\") | table client_name client_mac client_ip client_type client_vendor attachment | sort client_name",
         "queryParameters": {}
       },
       "name": "Client identity"
+    },
+    "ds_uplink": {
+      "type": "ds.search",
+      "options": {
+        "query": "| inputlookup unifi_client_lookup | search client_mac IN ($client|s$) OR (\"$client$\"=\"*\") | lookup unifi_device_by_id device_id AS uplink_device_id OUTPUT device_model AS uplink_model device_ip AS uplink_ip device_state AS uplink_state device_mac AS uplink_mac | eval attachment=if(upper(client_type)=\"WIRED\",\"wired\",\"Wi-Fi\") | where isnotnull(uplink_device_name) AND uplink_device_name!=\"\" | table client_name client_mac attachment uplink_device_name uplink_model uplink_ip uplink_state | sort client_name",
+        "queryParameters": {}
+      },
+      "name": "Current uplink device"
+    },
+    "ds_used": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` (client_mac IN ($client|s$) OR (\"$client$\"=\"*\")) | stats count as events, min(_time) as first_seen, max(_time) as last_seen, avg(rssi) as avg_rssi by device_name | eval role=\"seen in syslog\" | append [| inputlookup unifi_client_lookup | search client_mac IN ($client|s$) OR (\"$client$\"=\"*\") | eval device_name=uplink_device_name, events=0, role=\"current uplink\" | where isnotnull(device_name) AND device_name!=\"\" | table device_name events role] | stats sum(events) as events, min(first_seen) as first_seen, max(last_seen) as last_seen, avg(avg_rssi) as avg_rssi, values(role) as role by device_name | where isnotnull(device_name) AND device_name!=\"\" | join type=left device_name [| inputlookup unifi_device_lookup | table device_name device_model device_ip device_state] | eval avg_rssi=round(avg_rssi,0) | convert ctime(first_seen) ctime(last_seen) | sort - events | table device_name device_model device_ip device_state events avg_rssi first_seen last_seen role",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "APs and switches used"
+    },
+    "ds_ap_dist": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_syslog` (client_mac IN ($client|s$) OR (\"$client$\"=\"*\")) | where isnotnull(device_name) | stats count by device_name | sort - count",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
+        "refresh": "$rfsh$"
+      },
+      "name": "Events per AP or switch"
     },
     "ds_roam": {
       "type": "ds.search",
@@ -68,15 +106,6 @@
         "refresh": "$rfsh$"
       },
       "name": "Roaming spread"
-    },
-    "ds_ap_dist": {
-      "type": "ds.search",
-      "options": {
-        "query": "search `unifi_syslog_index` sourcetype=ubnt:wireless (client_mac IN ($client|s$) OR (\"$client$\"=\"*\")) | eval client=coalesce(client_name, client_mac) | stats count by device_name | sort - count",
-        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
-        "refresh": "$rfsh$"
-      },
-      "name": "Events per AP"
     },
     "ds_rssi": {
       "type": "ds.search",
@@ -90,11 +119,11 @@
     "ds_events": {
       "type": "ds.search",
       "options": {
-        "query": "search `unifi_syslog` (client_mac IN ($client|s$) OR (\"$client$\"=\"*\")) | eval client=coalesce(client_name, client_mac) | table _time client device_name severity event_action proc wifi_event kick_reason rssi _raw | sort - _time",
+        "query": "search `unifi_syslog` ((client_mac IN ($client|s$) OR (\"$client$\"=\"*\")) OR [| inputlookup unifi_client_lookup | search client_mac IN ($client|s$) OR (\"$client$\"=\"*\") | eval include=\"$include_uplink$\" | eval device_name=if(include=\"1\", uplink_device_name, \"__unifi_uplink_disabled__\") | append [ search `unifi_syslog` (client_mac IN ($client|s$) OR (\"$client$\"=\"*\")) | eval include=\"$include_uplink$\" | where include=\"1\" | stats values(device_name) as device_name | mvexpand device_name ] | where isnotnull(device_name) AND device_name!=\"\" | dedup device_name | return 100 device_name ])",
         "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" },
         "refresh": "$rfsh$"
       },
-      "name": "Client syslog"
+      "name": "Client syslog raw"
     }
   },
   "visualizations": {
@@ -104,41 +133,77 @@
       "dataSources": { "primary": "ds_identity" },
       "title": "Identity"
     },
+    "viz_uplink": {
+      "type": "viz.table",
+      "options": { "drilldown": "row" },
+      "dataSources": { "primary": "ds_uplink" },
+      "title": "Currently attached to (switch for wired, AP for Wi-Fi) — click to open Device Drilldown",
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToDashboard",
+          "options": {
+            "app": "unifi_app_for_splunk",
+            "dashboard": "unifi_device_drilldown",
+            "tokens": [ { "token": "device", "value": "row.uplink_device_name.value" } ]
+          }
+        }
+      ]
+    },
+    "viz_used": {
+      "type": "viz.table",
+      "options": { "drilldown": "row", "count": 20 },
+      "dataSources": { "primary": "ds_used" },
+      "title": "APs and switches this client used (current uplink plus syslog history) — click to open Device Drilldown",
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToDashboard",
+          "options": {
+            "app": "unifi_app_for_splunk",
+            "dashboard": "unifi_device_drilldown",
+            "tokens": [ { "token": "device", "value": "row.device_name.value" } ]
+          }
+        }
+      ]
+    },
     "viz_ap_dist": {
       "type": "viz.bar",
       "options": {},
       "dataSources": { "primary": "ds_ap_dist" },
-      "title": "Events per AP (which APs this client touches)"
+      "title": "Syslog events per AP or switch (mentions of this client)"
     },
     "viz_roam": {
       "type": "viz.column",
       "options": { "yAxisTitleText": "distinct APs / 10m" },
       "dataSources": { "primary": "ds_roam" },
-      "title": "Roaming spread (high = ping-ponging between APs)"
+      "title": "Roaming spread (high = ping-ponging between APs)",
+      "hideWhenNoData": true
     },
     "viz_rssi": {
       "type": "viz.line",
       "options": { "yAxisTitleText": "RSSI" },
       "dataSources": { "primary": "ds_rssi" },
-      "title": "Signal (RSSI) over time"
+      "title": "Signal (RSSI) over time",
+      "hideWhenNoData": true
     },
     "viz_events": {
-      "type": "viz.table",
-      "options": { "count": 50 },
+      "type": "splunk.events",
+      "options": { "type": "raw", "count": 50 },
       "dataSources": { "primary": "ds_events" },
-      "title": "Client syslog (all APs)"
+      "title": "Syslog (raw). Enable Include uplink / AP logs to add the attached switch and every AP this client used."
     }
   },
   "layout": {
     "type": "grid",
-    "options": { "width": 1440, "height": 1120 },
-    "globalInputs": [ "input_client", "input_time", "input_refresh" ],
+    "options": { "width": 1440, "height": 1480 },
+    "globalInputs": [ "input_client", "input_uplink", "input_time", "input_refresh" ],
     "structure": [
-      { "item": "viz_identity", "type": "block", "position": { "x": 0, "y": 0, "w": 720, "h": 160 } },
-      { "item": "viz_ap_dist", "type": "block", "position": { "x": 720, "y": 0, "w": 720, "h": 160 } },
-      { "item": "viz_roam", "type": "block", "position": { "x": 0, "y": 160, "w": 720, "h": 280 } },
-      { "item": "viz_rssi", "type": "block", "position": { "x": 720, "y": 160, "w": 720, "h": 280 } },
-      { "item": "viz_events", "type": "block", "position": { "x": 0, "y": 440, "w": 1440, "h": 660 } }
+      { "item": "viz_identity", "type": "block", "position": { "x": 0, "y": 0, "w": 720, "h": 200 } },
+      { "item": "viz_uplink", "type": "block", "position": { "x": 720, "y": 0, "w": 720, "h": 200 } },
+      { "item": "viz_used", "type": "block", "position": { "x": 0, "y": 200, "w": 720, "h": 280 } },
+      { "item": "viz_ap_dist", "type": "block", "position": { "x": 720, "y": 200, "w": 720, "h": 280 } },
+      { "item": "viz_roam", "type": "block", "position": { "x": 0, "y": 480, "w": 720, "h": 240 } },
+      { "item": "viz_rssi", "type": "block", "position": { "x": 720, "y": 480, "w": 720, "h": 240 } },
+      { "item": "viz_events", "type": "block", "position": { "x": 0, "y": 720, "w": 1440, "h": 740 } }
     ]
   }
 }

@@ -30,13 +30,13 @@ shows `U7DG`, `Sigitas-iPhone` and `Apple, Inc.` instead of `942a6f4877f1`.
 
 ## 2. Setup — point the app at your indexes (required)
 
-All index references live in **two macros**. Set them once, no restart needed
+All index references live in **three macros**. Set them once, no restart needed
 (they are search-time).
 
 **Easiest: the Setup page.** Open the app → **Setup** (in the app nav, or
 *Manage Apps → UniFi App for Splunk → Set up*). It runs a discovery search that
 shows which indexes hold your UniFi TA data and your UniFi syslog, lets you enter
-the two index expressions, and **writes the macros on Save** — no manual editing.
+the index expressions, and **writes the macros on Save** — no manual editing.
 
 **Or by hand:** Settings → Advanced search → Search macros → app
 `unifi_app_for_splunk`:
@@ -45,11 +45,12 @@ the two index expressions, and **writes the macros on Save** — no manual editi
 |-------|---------|---------|
 | `unifi_index` | `index=unifi` | Where `TA_unifi_ng` writes asset/telemetry. |
 | `unifi_syslog_index` | `index=netops source=sc4s` | Where UniFi device syslog lands. |
+| `unifi_netflow_index` | `index=netflow` | Where Splunk Stream NetFlow/IPFIX lands. |
 
 Edit the **Definition** to match your environment, e.g. if your TA writes to
 `index=network_unifi`, set `unifi_index` definition to `index=network_unifi`.
 
-> These two macros are the *only* place indexes are referenced. Every saved
+> These macros are the *only* place indexes are referenced. Every saved
 > search, lookup generator and dashboard is built on top of them.
 
 After editing, run the two lookup generators once (next section) so enrichment
@@ -164,12 +165,13 @@ Applied automatically to `ubnt`, `ubnt:wireless`, `ubnt:dns`:
 
 | Dashboard | Purpose |
 |-----------|---------|
-| **UniFi - Topology** | Live map of clients → APs → switches → the Dream Machine. Directional links labelled with live uplink throughput; node colour = errors in the last 5 min. Show-clients toggle, time picker (time-travel), 30s refresh. **Requires the Network Diagram Viz app.** |
+| **UniFi - Topology** | Live **star** map of clients → APs → switches → the Dream Machine. Directional links labelled with live uplink throughput; node colour = errors in the last 5 min. Show-clients toggle, time picker (time-travel), 30s refresh. **Click a node** to open Device or Client Drilldown. **Requires the Network Diagram Viz app.** |
 | **UniFi - Overview** | Fleet health (online/offline), **clients-seen and WiFi-disconnects each plotted against a "normal" band** (mean of the same weekday+hour over the prior 28 days, ±10%), top kick reasons, problem devices and noisiest clients. Click a device or client to drill down. |
 | **UniFi - Device Drilldown** | One **or more** devices (multi-select, defaults to All): asset, **software/firmware version**, CPU/memory, **uplink throughput**, **fan & temperature** (from `ubnt-fanctrl` syslog), **active ports/PoE**, clients (clickable), events-over-time, and a rich syslog section with **severity / event-type filters** and **clustering by client, by device and by message pattern**. |
-| **UniFi - Client Drilldown** | One **or more** clients (multi-select): identity + vendor, which APs they touch, roaming spread, RSSI over time, full syslog. |
+| **UniFi - Client Drilldown** | One **or more** clients (multi-select): identity + vendor, **wired switch or Wi-Fi AP attachment** (model/IP/state), APs/switches used in the time range, optional **uplink/AP syslog**, roaming/RSSI for wireless, **raw events viewer** (not a table). |
 | **UniFi - WiFi Experience & Roaming** | Fleet-wide wireless RCA: kicks by AP, association failures over time, most-kicked low-RSSI clients, roaming churn, TX-retry by AP. |
 | **UniFi - Auditing** | Device SSH logins (**who / from where / when**), login sources, port link up/down history, **config-change detection** (firmware/IP/state), and an errors/warnings timeline. Login and port rows drill down to the device. |
+| **UniFi - Flow Analysis** | NetFlow/IPFIX from `index=netflow` (`sourcetype=stream:netflow`): talkers, conversations, ports/services, protocol mix, UniFi client enrichment. |
 
 Drilldowns pass the device name / client MAC as a token, and the target
 dashboard shows **only** the selected entities' telemetry, asset and syslog.
@@ -214,19 +216,21 @@ full history and lets you correlate. Common root causes this surfaces:
 unifi_app_for_splunk/
 ├── default/
 │   ├── app.conf
-│   ├── macros.conf          # unifi_index / unifi_syslog_index + helpers
+│   ├── macros.conf          # unifi_index / unifi_syslog_index / unifi_netflow_index + helpers
 │   ├── collections.conf     # KV Store collections
 │   ├── transforms.conf      # lookup defs + syslog field extractions
 │   ├── props.conf           # auto LOOKUP- + REPORT- on ubnt* sourcetypes
 │   ├── savedsearches.conf   # lookup generators (scheduled)
 │   └── data/ui/
 │       ├── nav/default.xml
-│       └── views/           # 5 dashboards + Setup
+│       └── views/           # dashboards + Setup
 │           ├── unifi_overview.xml
+│           ├── unifi_topology.xml
 │           ├── unifi_device_drilldown.xml
 │           ├── unifi_client_drilldown.xml
 │           ├── unifi_wifi_experience.xml
 │           ├── unifi_audit.xml
+│           ├── unifi_flow_analysis.xml
 │           └── setup.xml            # Setup page (SimpleXML + JS)
 ├── appserver/static/        # setup_macros.js / .css (Setup page logic)
 ├── lookups/
@@ -237,6 +241,17 @@ unifi_app_for_splunk/
 ---
 
 ## 9. Changelog
+
+**1.4.0**
+- Client Drilldown syslog is a **raw Events viewer** (no `_raw` table column).
+- Wired clients show the attached **switch** (name, model, IP, state); Wi-Fi
+  clients show the current AP. A combined "APs and switches used" table covers
+  roaming across multiple APs. Toggle **Include uplink / AP logs** to add those
+  devices' syslog to the events viewer. Click through to Device Drilldown.
+- Topology is **star-only** (tiered hierarchy removed). Longer arrows, larger
+  link labels, and **click a node** to open Device or Client Drilldown.
+- New **UniFi - Flow Analysis** dashboard on `index=netflow` (Stream IPFIX).
+- Setup page and macros now include `unifi_netflow_index`.
 
 **1.3.1**
 - Stop Dashboard Studio's "Refresh rates of less than 60 seconds might impact

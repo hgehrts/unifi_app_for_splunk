@@ -5,6 +5,7 @@
   <view name="unifi_client_drilldown" />
   <view name="unifi_wifi_experience" />
   <view name="unifi_audit" />
+  <view name="unifi_flow_analysis" />
   <view name="setup" />
   <collection label="Search">
     <view name="search" />

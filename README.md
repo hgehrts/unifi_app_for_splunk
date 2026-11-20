@@ -13,8 +13,8 @@ UniFi syslog only carries cryptic MAC addresses. This app enriches those events
 **at search time** with friendly device names, client names, IPs, model and the
 client hardware vendor — so you read `U7DG kicked Sigitas-iPhone (Apple, Inc.) —
 Low RSSI` instead of `942a6f4877f1 … kick-sta … reason:Low RSSI`. It then ships
-**four linked Dashboard Studio dashboards** for fleet health, root-cause analysis
-and per-device / per-client drilldown.
+**linked Dashboard Studio dashboards** for fleet health, topology, NetFlow,
+root-cause analysis and per-device / per-client drilldown.
 
 > Built and tested on Splunk Enterprise 10.x (10.4) against UniFi Network 10.4.
 
@@ -28,9 +28,11 @@ and per-device / per-client drilldown.
   (`device_name`, `client_name`, `client_vendor`, plus extracted `proc`,
   `wifi_event`, `kick_reason`, `rssi`, `stahtd_*`).
 - **MAC-OUI vendor lookup** (bundled IEEE registry, ~39k rows).
-- **Four dashboards** — Overview (with a "normal band" trend baseline), Device
-  Drilldown, Client Drilldown, WiFi Experience & Roaming — all click-to-drilldown.
-- **Index-agnostic** via two editable macros (`unifi_index`, `unifi_syslog_index`).
+- **Dashboards** — Overview (with a "normal band" trend baseline), Topology,
+  Device / Client Drilldown, WiFi Experience, Auditing, Flow Analysis — all
+  click-to-drilldown.
+- **Index-agnostic** via editable macros (`unifi_index`, `unifi_syslog_index`,
+  `unifi_netflow_index`).
 
 ---
 
@@ -39,8 +41,8 @@ and per-device / per-client drilldown.
 1. Download `unifi_app_for_splunk-<version>.tar.gz` from [`dist/`](dist/) or a
    GitHub Release.
 2. Splunk Web → **Apps → Manage Apps → Install app from file** → upload → restart.
-3. **Set the two index macros** for your environment (Settings → Advanced search
-   → Search macros): `unifi_index` and `unifi_syslog_index`.
+3. **Set the index macros** for your environment (Settings → Advanced search
+   → Search macros): `unifi_index`, `unifi_syslog_index`, `unifi_netflow_index`.
 4. Run the two lookup-generating searches once (or wait for the 15-minute
    schedule): *unifi - rebuild device lookup*, then *unifi - rebuild client
    lookup*.
@@ -61,12 +63,13 @@ Full setup, including getting UniFi syslog into Splunk via SC4S, is in the in-ap
 
 | Dashboard | Purpose |
 |-----------|---------|
-| **UniFi – Topology** | Live map (clients → APs → switches → Dream Machine) with directional links, live uplink-throughput labels, node colour by errors in the last 5 min, a show-clients toggle, a time picker (time-travel) and 30s refresh. **Requires the Network Diagram Viz app.** |
+| **UniFi – Topology** | Live **star** map (clients → APs → switches → Dream Machine) with directional links, live uplink-throughput labels, node colour by errors in the last 5 min, a show-clients toggle, a time picker and 30s refresh. **Click a node** to open Device or Client Drilldown. **Requires the Network Diagram Viz app.** |
 | **UniFi – Overview** | Online/offline, clients-seen and WiFi-disconnects vs a same-weekday/hour ±10% "normal band", top kick reasons, problem devices, noisiest clients. Click to drill down. |
 | **UniFi – Device Drilldown** | One **or more** devices (multi-select): asset, software/firmware version, CPU/memory, uplink throughput, fan & temperature, active ports/PoE, clients, and rich syslog with severity/event filters + clustering by client/device/message. |
-| **UniFi – Client Drilldown** | One **or more** clients: identity + vendor, APs touched, roaming spread, RSSI, full syslog. |
+| **UniFi – Client Drilldown** | One **or more** clients: identity + vendor, wired switch or Wi-Fi AP attachment, APs/switches used, optional uplink/AP logs, raw syslog viewer. |
 | **UniFi – WiFi Experience & Roaming** | Fleet-wide wireless RCA: kicks by AP, association failures, low-RSSI kicked clients, roaming churn, TX-retry by AP. |
 | **UniFi – Auditing** | Device SSH logins (who/where/when), port up/down history, config-change detection, errors/warnings timeline. |
+| **UniFi – Flow Analysis** | NetFlow/IPFIX (`index=netflow`): talkers, conversations, ports, protocol mix, UniFi client enrichment. |
 
 All dashboards have an Auto-refresh control, and a **Setup page** discovers your
 indexes and writes the macros on Save.
@@ -80,7 +83,7 @@ The ready-to-install app is committed under
 
 ```bash
 ./build.sh            # -> dist/unifi_app_for_splunk-<VERSION>.tar.gz (+ .sha256)
-./build.sh 1.3.1      # override version label
+./build.sh 1.4.0      # override version label
 ```
 
 ---

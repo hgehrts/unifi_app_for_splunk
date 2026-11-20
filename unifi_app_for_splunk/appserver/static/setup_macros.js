@@ -1,17 +1,17 @@
 /*
  * UniFi App for Splunk — Setup page logic.
- * Loads the current unifi_index / unifi_syslog_index macro definitions and
- * writes them back via the splunkd REST proxy on Save. No restart needed
- * (search macros are search-time).
+ * Loads the current index macro definitions and writes them back via the
+ * splunkd REST proxy on Save. No restart needed (search macros are search-time).
  */
 require(['jquery', 'splunkjs/mvc', 'splunkjs/mvc/simplexml/ready!'], function ($, mvc) {
     'use strict';
 
     var APP = 'unifi_app_for_splunk';
-    var MACROS = ['unifi_index', 'unifi_syslog_index'];
+    var MACROS = ['unifi_index', 'unifi_syslog_index', 'unifi_netflow_index'];
     var FIELD = {
         unifi_index: 'unifi_index_def',
-        unifi_syslog_index: 'unifi_syslog_index_def'
+        unifi_syslog_index: 'unifi_syslog_index_def',
+        unifi_netflow_index: 'unifi_netflow_index_def'
     };
 
     var service = mvc.createService({ owner: 'nobody', app: APP });
