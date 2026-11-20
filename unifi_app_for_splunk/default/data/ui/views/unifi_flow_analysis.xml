@@ -16,7 +16,7 @@
       "title": "Auto-refresh",
       "options": {
         "token": "rfsh",
-        "defaultValue": "",
+        "defaultValue": "5m",
         "items": [
           { "label": "Off", "value": "" },
           { "label": "1m", "value": "1m" },
@@ -67,6 +67,14 @@
         "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
       },
       "name": "Traffic over time"
+    },
+    "ds_sankey": {
+      "type": "ds.search",
+      "options": {
+        "query": "search `unifi_netflow` | where cidrmatch(\"10.0.0.0/8\",src_ip) OR cidrmatch(\"192.168.0.0/16\",src_ip) OR cidrmatch(\"172.16.0.0/12\",src_ip) | eval src_mac_l=lower(src_mac) | lookup unifi_client_lookup client_mac AS src_mac_l OUTPUT client_name AS src_client | join type=left src_ip [| inputlookup unifi_client_lookup | rename client_ip as src_ip client_name as src_name | dedup src_ip | table src_ip src_name] | eval source=coalesce(src_client, src_name, src_ip) | eval service=case(dest_port=443,\"https\", dest_port=80,\"http\", dest_port=53,\"dns\", dest_port=22,\"ssh\", dest_port=123,\"ntp\", dest_port=25,\"smtp\", dest_port=853,\"dot\", dest_port=993,\"imaps\", dest_port=5223,\"apns\", dest_port=3478,\"stun\", dest_port=5353,\"mdns\", dest_port=1900,\"ssdp\", dest_port=8080,\"http-alt\", dest_port<1024, tostring(dest_port), true(), \"other\") | eval dest_class=if(cidrmatch(\"10.0.0.0/8\",dest_ip) OR cidrmatch(\"192.168.0.0/16\",dest_ip) OR cidrmatch(\"172.16.0.0/12\",dest_ip),\"LAN\",\"Internet\") | eval target=service.\" (\".dest_class.\")\" | stats sum(bytes_in) as value by source, target | where isnotnull(source) AND isnotnull(target) AND value>0 | sort - value | head 25 | table source target value",
+        "queryParameters": { "earliest": "$tr.earliest$", "latest": "$tr.latest$" }
+      },
+      "name": "Sankey client to service"
     },
     "ds_talkers": {
       "type": "ds.search",
@@ -156,6 +164,12 @@
       "dataSources": { "primary": "ds_trend" },
       "title": "Traffic over time (bytes MB, packets, flows)"
     },
+    "viz_sankey": {
+      "type": "splunk.sankey",
+      "options": { "linkColorMode": "source" },
+      "dataSources": { "primary": "ds_sankey" },
+      "title": "Traffic flow: LAN clients \u2192 service (Internet vs LAN). Link width = bytes. Top 25."
+    },
     "viz_talkers": {
       "type": "viz.bar",
       "options": {},
@@ -221,21 +235,22 @@
   },
   "layout": {
     "type": "grid",
-    "options": { "width": 1440, "height": 1560 },
+    "options": { "width": 1440, "height": 1920 },
     "globalInputs": [ "input_time", "input_refresh" ],
     "structure": [
       { "item": "viz_flows", "type": "block", "position": { "x": 0, "y": 0, "w": 360, "h": 140 } },
       { "item": "viz_bytes", "type": "block", "position": { "x": 360, "y": 0, "w": 360, "h": 140 } },
       { "item": "viz_sources", "type": "block", "position": { "x": 720, "y": 0, "w": 360, "h": 140 } },
       { "item": "viz_dests", "type": "block", "position": { "x": 1080, "y": 0, "w": 360, "h": 140 } },
-      { "item": "viz_trend", "type": "block", "position": { "x": 0, "y": 140, "w": 1440, "h": 280 } },
-      { "item": "viz_talkers", "type": "block", "position": { "x": 0, "y": 420, "w": 900, "h": 280 } },
-      { "item": "viz_proto", "type": "block", "position": { "x": 900, "y": 420, "w": 540, "h": 280 } },
-      { "item": "viz_services", "type": "block", "position": { "x": 0, "y": 700, "w": 720, "h": 300 } },
-      { "item": "viz_destinations", "type": "block", "position": { "x": 720, "y": 700, "w": 720, "h": 300 } },
-      { "item": "viz_conv", "type": "block", "position": { "x": 0, "y": 1000, "w": 1440, "h": 280 } },
-      { "item": "viz_clients", "type": "block", "position": { "x": 0, "y": 1280, "w": 900, "h": 260 } },
-      { "item": "viz_exporter", "type": "block", "position": { "x": 900, "y": 1280, "w": 540, "h": 260 } }
+      { "item": "viz_trend", "type": "block", "position": { "x": 0, "y": 140, "w": 1440, "h": 260 } },
+      { "item": "viz_sankey", "type": "block", "position": { "x": 0, "y": 400, "w": 1440, "h": 380 } },
+      { "item": "viz_talkers", "type": "block", "position": { "x": 0, "y": 780, "w": 900, "h": 280 } },
+      { "item": "viz_proto", "type": "block", "position": { "x": 900, "y": 780, "w": 540, "h": 280 } },
+      { "item": "viz_services", "type": "block", "position": { "x": 0, "y": 1060, "w": 720, "h": 300 } },
+      { "item": "viz_destinations", "type": "block", "position": { "x": 720, "y": 1060, "w": 720, "h": 300 } },
+      { "item": "viz_conv", "type": "block", "position": { "x": 0, "y": 1360, "w": 1440, "h": 280 } },
+      { "item": "viz_clients", "type": "block", "position": { "x": 0, "y": 1640, "w": 900, "h": 260 } },
+      { "item": "viz_exporter", "type": "block", "position": { "x": 900, "y": 1640, "w": 540, "h": 260 } }
     ]
   }
 }

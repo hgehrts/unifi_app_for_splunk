@@ -8,7 +8,7 @@
 - **Release package:** [`dist/`](../dist/)
 - **In-app README:** [`unifi_app_for_splunk/README.md`](../unifi_app_for_splunk/README.md)
 - **Design / decision log:** [`docs/correlation-dashboards-plan.md`](correlation-dashboards-plan.md)
-- **Current version:** 1.4.0
+- **Current version:** 1.4.1
 
 ---
 
@@ -155,7 +155,7 @@ so the target shows **only** that entity.
 | **UniFi – Device Drilldown** | [`unifi_device_drilldown.xml`](../unifi_app_for_splunk/default/data/ui/views/unifi_device_drilldown.xml) | One device: asset, CPU/memory telemetry, connect/disconnect/kick timeline, clients on it (clickable), full syslog. |
 | **UniFi – Client Drilldown** | [`unifi_client_drilldown.xml`](../unifi_app_for_splunk/default/data/ui/views/unifi_client_drilldown.xml) | One client: identity, wired switch or Wi-Fi AP attachment, APs/switches used, optional uplink logs, raw syslog. |
 | **UniFi – WiFi Experience & Roaming** | [`unifi_wifi_experience.xml`](../unifi_app_for_splunk/default/data/ui/views/unifi_wifi_experience.xml) | Fleet-wide wireless RCA: kicks by AP, association failures over time, most-kicked low-RSSI clients, roaming churn, TX-retry by AP. |
-| **UniFi – Flow Analysis** | [`unifi_flow_analysis.xml`](../unifi_app_for_splunk/default/data/ui/views/unifi_flow_analysis.xml) | NetFlow/IPFIX talkers, conversations, ports, protocol mix, UniFi client enrichment. |
+| **UniFi – Flow Analysis** | [`unifi_flow_analysis.xml`](../unifi_app_for_splunk/default/data/ui/views/unifi_flow_analysis.xml) | NetFlow/IPFIX Sankey (LAN clients → service), talkers, conversations, ports, protocol mix, UniFi client enrichment. |
 
 The "normal band" is the mean of the **same weekday and hour** over the trailing
 28 days, drawn as `Normal low`/`Normal high` lines at ±10 %, so an operator can

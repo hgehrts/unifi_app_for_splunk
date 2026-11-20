@@ -66,7 +66,7 @@ Example: `942a6f4877f1 … kick-sta … reason:Low RSSI` becomes `U7DG kicked Si
 | **UniFi – Client Drilldown** | Multi-select client view: identity, vendor, wired switch or Wi-Fi AP attachment, APs/switches used, optional uplink logs, raw syslog. |
 | **UniFi – WiFi Experience & Roaming** | Fleet wireless RCA: kicks by AP, association failures, low-RSSI clients, roaming churn. |
 | **UniFi – Auditing** | SSH logins, port up/down, config-change hints, errors/warnings timeline. |
-| **UniFi – Flow Analysis** | NetFlow/IPFIX talkers, conversations, ports, protocol mix, UniFi client enrichment. |
+| **UniFi – Flow Analysis** | NetFlow/IPFIX Sankey (LAN clients → service), talkers, conversations, ports, protocol mix, UniFi client enrichment. |
 
 All dashboards include auto-refresh and link to each other via drilldown tokens.
 

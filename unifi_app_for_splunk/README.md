@@ -165,17 +165,17 @@ Applied automatically to `ubnt`, `ubnt:wireless`, `ubnt:dns`:
 
 | Dashboard | Purpose |
 |-----------|---------|
-| **UniFi - Topology** | Live **star** map of clients → APs → switches → the Dream Machine. Directional links labelled with live uplink throughput; node colour = errors in the last 5 min. Show-clients toggle, time picker (time-travel), 30s refresh. **Click a node** to open Device or Client Drilldown. **Requires the Network Diagram Viz app.** |
+| **UniFi - Topology** | Live **star** map of clients → APs → switches → the Dream Machine. Directional links labelled with live uplink throughput; node colour = errors in the last 5 min. Show-clients toggle, time picker (time-travel), 5-minute refresh. **Click a node** to open Device or Client Drilldown. **Requires the Network Diagram Viz app.** |
 | **UniFi - Overview** | Fleet health (online/offline), **clients-seen and WiFi-disconnects each plotted against a "normal" band** (mean of the same weekday+hour over the prior 28 days, ±10%), top kick reasons, problem devices and noisiest clients. Click a device or client to drill down. |
 | **UniFi - Device Drilldown** | One **or more** devices (multi-select, defaults to All): asset, **software/firmware version**, CPU/memory, **uplink throughput**, **fan & temperature** (from `ubnt-fanctrl` syslog), **active ports/PoE**, clients (clickable), events-over-time, and a rich syslog section with **severity / event-type filters** and **clustering by client, by device and by message pattern**. |
 | **UniFi - Client Drilldown** | One **or more** clients (multi-select): identity + vendor, **wired switch or Wi-Fi AP attachment** (model/IP/state), APs/switches used in the time range, optional **uplink/AP syslog**, roaming/RSSI for wireless, **raw events viewer** (not a table). |
 | **UniFi - WiFi Experience & Roaming** | Fleet-wide wireless RCA: kicks by AP, association failures over time, most-kicked low-RSSI clients, roaming churn, TX-retry by AP. |
 | **UniFi - Auditing** | Device SSH logins (**who / from where / when**), login sources, port link up/down history, **config-change detection** (firmware/IP/state), and an errors/warnings timeline. Login and port rows drill down to the device. |
-| **UniFi - Flow Analysis** | NetFlow/IPFIX from `index=netflow` (`sourcetype=stream:netflow`): talkers, conversations, ports/services, protocol mix, UniFi client enrichment. |
+| **UniFi - Flow Analysis** | NetFlow/IPFIX from `index=netflow` (`sourcetype=stream:netflow`): Sankey of LAN clients → service, talkers, conversations, ports/services, protocol mix, UniFi client enrichment. |
 
 Drilldowns pass the device name / client MAC as a token, and the target
 dashboard shows **only** the selected entities' telemetry, asset and syslog.
-Every Dashboard Studio view has an **Auto-refresh** control (default Off; 1m–15m). Dashboard Studio warns if refresh is under 60 seconds, so 30s is not offered there. Topology (Classic) still refreshes every 30s.
+Every dashboard has an **Auto-refresh** control that **defaults to 5 minutes** (Studio also offers Off / 1m / 15m). Dashboard Studio warns if refresh is under 60 seconds, so 30s is not offered there. Topology (Classic) uses the same 5-minute default.
 
 ### Note on audit scope
 
@@ -241,6 +241,12 @@ unifi_app_for_splunk/
 ---
 
 ## 9. Changelog
+
+**1.4.1**
+- Auto-refresh now **defaults to 5 minutes** on every dashboard (including Topology)
+  so searches start on load. Off / 1m / 15m remain available.
+- Flow Analysis adds a native **Sankey** of LAN clients → service (Internet vs LAN),
+  sized by bytes (top 25).
 
 **1.4.0**
 - Client Drilldown syslog is a **raw Events viewer** (no `_raw` table column).

@@ -45,7 +45,7 @@
       "title": "Auto-refresh",
       "options": {
         "token": "rfsh",
-        "defaultValue": "",
+        "defaultValue": "5m",
         "items": [
           { "label": "Off", "value": "" },
           { "label": "1m", "value": "1m" },
@@ -55,6 +55,7 @@
       }
     }
   },
+  "defaults": { "dataSources": { "ds.search": { "options": { "refresh": "$rfsh$", "refreshType": "delay" } } } },
   "dataSources": {
     "ds_clientlist": {
       "type": "ds.search",

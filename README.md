@@ -63,15 +63,15 @@ Full setup, including getting UniFi syslog into Splunk via SC4S, is in the in-ap
 
 | Dashboard | Purpose |
 |-----------|---------|
-| **UniFi – Topology** | Live **star** map (clients → APs → switches → Dream Machine) with directional links, live uplink-throughput labels, node colour by errors in the last 5 min, a show-clients toggle, a time picker and 30s refresh. **Click a node** to open Device or Client Drilldown. **Requires the Network Diagram Viz app.** |
+| **UniFi – Topology** | Live **star** map (clients → APs → switches → Dream Machine) with directional links, live uplink-throughput labels, node colour by errors in the last 5 min, a show-clients toggle, a time picker and 5-minute refresh. **Click a node** to open Device or Client Drilldown. **Requires the Network Diagram Viz app.** |
 | **UniFi – Overview** | Online/offline, clients-seen and WiFi-disconnects vs a same-weekday/hour ±10% "normal band", top kick reasons, problem devices, noisiest clients. Click to drill down. |
 | **UniFi – Device Drilldown** | One **or more** devices (multi-select): asset, software/firmware version, CPU/memory, uplink throughput, fan & temperature, active ports/PoE, clients, and rich syslog with severity/event filters + clustering by client/device/message. |
 | **UniFi – Client Drilldown** | One **or more** clients: identity + vendor, wired switch or Wi-Fi AP attachment, APs/switches used, optional uplink/AP logs, raw syslog viewer. |
 | **UniFi – WiFi Experience & Roaming** | Fleet-wide wireless RCA: kicks by AP, association failures, low-RSSI kicked clients, roaming churn, TX-retry by AP. |
 | **UniFi – Auditing** | Device SSH logins (who/where/when), port up/down history, config-change detection, errors/warnings timeline. |
-| **UniFi – Flow Analysis** | NetFlow/IPFIX (`index=netflow`): talkers, conversations, ports, protocol mix, UniFi client enrichment. |
+| **UniFi – Flow Analysis** | NetFlow/IPFIX (`index=netflow`): Sankey of LAN clients → service, talkers, conversations, ports, protocol mix, UniFi client enrichment. |
 
-All dashboards have an Auto-refresh control, and a **Setup page** discovers your
+All dashboards auto-refresh every **5 minutes** by default (changeable), and a **Setup page** discovers your
 indexes and writes the macros on Save.
 
 ---

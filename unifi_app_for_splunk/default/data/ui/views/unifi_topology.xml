@@ -59,7 +59,7 @@
     </query>
     <earliest>$tr.earliest$</earliest>
     <latest>$tr.latest$</latest>
-    <refresh>30s</refresh>
+    <refresh>5m</refresh>
     <refreshType>delay</refreshType>
   </search>
 
@@ -82,7 +82,7 @@
 
   <row>
     <panel>
-      <title>Star topology — globe = gateway, switch = switch, Wi-Fi = AP, laptop/desktop = wireless/wired client. Link label = live uplink throughput. Node colour = errors in the last 5 min. Click a node to open Device or Client Drilldown. Auto-refresh 30s.</title>
+      <title>Star topology — globe = gateway, switch = switch, Wi-Fi = AP, laptop/desktop = wireless/wired client. Link label = live uplink throughput. Node colour = errors in the last 5 min. Click a node to open Device or Client Drilldown. Auto-refresh 5m.</title>
       <viz type="network-diagram-viz.network-diagram-viz">
         <search base="base_topo"></search>
         <option name="drilldown">all</option>
